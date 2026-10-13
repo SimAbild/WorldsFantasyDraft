@@ -1,36 +1,26 @@
-// Ansvar: Leaderboard-siden – stilling i ligaen, tidslinje over hvem der førte, og oprettelse af ligaer
+// Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, og visning af andres hold
 import * as api from "../api.js";
-import { escapeHtml, formatDay, formatTime, errorBox } from "../ui.js";
+import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../ui.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
+import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
 
 const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
 
-let selectedLeagueId = null;
-
 export async function render(root, context) {
-  const leagues = await api.fetchMyLeagues();
-  if (!leagues.length) {
-    root.innerHTML = `<h2>Leaderboard</h2><p class="muted">Du er ikke med i en liga endnu. Join med en kode fra en ven, eller opret din egen.</p>${leagueFormsHtml()}`;
-    bindLeagueForms(root, context);
-    return;
-  }
-  if (!leagues.some((league) => league.id === selectedLeagueId)) selectedLeagueId = leagues[0].id;
-  const league = leagues.find((item) => item.id === selectedLeagueId);
   const seriesRows = await api.fetchSeriesRows(context.phases.map((phase) => phase.id));
   const timeline = finishedSeriesInOrder(groupSeriesRows(seriesRows));
-  const loadStandingsAt = createStandingsLoader(league.id, timeline);
-  const state = { leagues, league, timeline, position: timeline.length, loadStandingsAt };
+  const state = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
   await draw(root, context, state);
 }
 
 // Position 0 = før første kamp, position timeline.length = nu. Hver stilling hentes kun én gang.
-function createStandingsLoader(leagueId, timeline) {
+function createStandingsLoader(timeline) {
   const cache = new Map();
   const timeAt = (position) => position >= timeline.length ? undefined
     : position === 0 ? BEFORE_FIRST_GAME : timeline[position - 1].at;
   return (position) => {
-    if (!cache.has(position)) cache.set(position, api.fetchStandings(leagueId, timeAt(position)));
+    if (!cache.has(position)) cache.set(position, api.fetchStandings(timeAt(position)));
     return cache.get(position);
   };
 }
@@ -39,26 +29,23 @@ async function draw(root, context, state) {
   const [standings, previousStandings] = await Promise.all([
     state.loadStandingsAt(state.position), state.loadStandingsAt(Math.max(0, state.position - 1)),
   ]);
-  root.innerHTML = headerHtml(state, standings.length) + standingsTableHtml(standings, previousStandings, context.user.id) + leagueFormsHtml();
-  bindLeagueForms(root, context);
-  bindControls(root, context, state);
+  root.innerHTML = headerHtml(state, standings.length)
+    + standingsTableHtml(standings, previousStandings, context.user.id)
+    + `<dialog id="user-teams" aria-labelledby="user-teams-title"></dialog>`;
+  bindEvents(root, context, state);
   drawLeaderHistory(root, state);
 }
 
 function headerHtml(state, playerCount) {
-  const { leagues, league, timeline, position } = state;
-  const leagueName = leagues.length > 1
-    ? `<select id="league-select">${leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select>`
-    : escapeHtml(league.name);
+  const { timeline, position } = state;
   const step = timeline[position - 1];
   const stepText = step ? `${escapeHtml(step.label)} · ${formatDay(step.at)} ${formatTime(step.at)}` : "før første kamp";
   const slider = timeline.length ? `<div class="slider">
       <label for="standings-after">Stilling efter: <span>${stepText}</span></label>
       <input type="range" id="standings-after" min="0" max="${timeline.length}" value="${position}">
-      <div class="leaders" id="leader-history"></div></div>` : "";
+      <div class="leaders" id="leader-history" aria-label="Hvem førte efter hver serie"></div></div>` : "";
   return `<div class="page-header"><div><h2>Leaderboard</h2>
-    <p class="muted">${leagueName} · ${playerCount} spillere · invitationskode <span class="code">${escapeHtml(league.invite_code)}</span></p></div>
-    ${slider}</div>`;
+    <p class="muted">${playerCount} spillere · tryk på et navn for at se holdene</p></div>${slider}</div>`;
 }
 
 function standingsTableHtml(standings, previousStandings, currentUserId) {
@@ -67,16 +54,18 @@ function standingsTableHtml(standings, previousStandings, currentUserId) {
     const rankChange = previous ? previous.rank - entry.rank : 0;
     const gain = previous ? (entry.points - previous.points).toFixed(1) : "0.0";
     const changeText = rankChange > 0 ? `▲ ${rankChange}` : rankChange < 0 ? `▼ ${-rankChange}` : "–";
+    const changeLabel = rankChange > 0 ? `op ${rankChange}` : rankChange < 0 ? `ned ${-rankChange}` : "uændret";
     const changeClass = rankChange > 0 ? "up" : rankChange < 0 ? "down" : "";
     const isLeader = entry.rank === 1 && entry.points > 0;
     const youLabel = entry.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
     return `<tr class="${isLeader ? "leader" : ""}"><td class="rank-number">${entry.rank}</td>
-      <td class="team">${escapeHtml(entry.username)}${youLabel}</td>
+      <td><button class="user-link" data-user-id="${entry.user_id}" data-username="${escapeHtml(entry.username)}">${escapeHtml(entry.username)}</button>${youLabel}</td>
       <td class="right number">${entry.points}</td><td class="right number">+${gain}</td>
-      <td class="right"><span class="rank-change ${changeClass}">${changeText}</span></td></tr>`;
+      <td class="right"><span class="rank-change ${changeClass}" aria-label="${changeLabel}">${changeText}</span></td></tr>`;
   }).join("");
   return `<div class="panel"><div class="table-scroll"><table>
-    <tr><th>#</th><th>Bruger</th><th class="right">Point</th><th class="right">Siden sidst</th><th class="right">Placering</th></tr>${rows}
+    <caption class="visually-hidden">Stilling for alle brugere</caption>
+    <tr><th scope="col">#</th><th scope="col">Bruger</th><th scope="col" class="right">Point</th><th scope="col" class="right">Siden sidst</th><th scope="col" class="right">Placering</th></tr>${rows}
     </table></div><p class="muted small">Andres hold kan ses, når en fase er låst. Point opdateres efter hver kamp.</p></div>`;
 }
 
@@ -95,43 +84,36 @@ async function drawLeaderHistory(root, state) {
   }).join("");
 }
 
-function bindControls(root, context, state) {
-  const leagueSelect = root.querySelector("#league-select");
-  if (leagueSelect) leagueSelect.onchange = () => { selectedLeagueId = Number(leagueSelect.value); render(root, context); };
+function bindEvents(root, context, state) {
   const slider = root.querySelector("#standings-after");
   if (slider) slider.onchange = () => { state.position = Number(slider.value); draw(root, context, state); };
+  root.querySelectorAll(".user-link").forEach((button) => {
+    button.onclick = () => openUserTeams(root, context, button.dataset.userId, button.dataset.username);
+  });
 }
 
-// ---------- Opret og join ligaer ----------
-function leagueFormsHtml(errorMessage = "") {
-  return `<div class="panel" id="league-forms"><h3>Ligaer</h3>
-    <div class="row">
-      <label for="invite-code">Invitationskode<input id="invite-code" maxlength="8" placeholder="fx 3fa9c21b"></label>
-      <button class="btn" id="join-league">Join liga</button>
-    </div>
-    <div class="row">
-      <label for="league-name">Ny liga<input id="league-name" maxlength="40" placeholder="Vennerne"></label>
-      <button class="btn ghost" id="create-league">Opret liga</button>
-    </div>
-    ${errorMessage ? errorBox(errorMessage) : ""}</div>`;
+// ---------- Andres hold ----------
+async function openUserTeams(root, context, userId, username) {
+  const dialog = root.querySelector("#user-teams");
+  dialog.innerHTML = userTeamsHtml(username, `<p class="muted">Henter…</p>`);
+  dialog.showModal();
+  try {
+    const picks = await api.fetchPickPoints(userId);
+    const phasesWithTeams = context.phases.filter((phase) => picks.some((pick) => pick.phase_id === phase.id));
+    const body = phasesWithTeams.length
+      ? `<p class="muted">I alt <b class="number">${sumPoints(picks).toFixed(1)}</b> point</p>`
+        + phasesWithTeams.map((phase) => phaseTeamsHtml(phase, picks.filter((pick) => pick.phase_id === phase.id))).join("")
+      : emptyBox(userId === context.user.id
+          ? "Du har ingen hold endnu."
+          : `${username}s hold vises her, når en fase er låst.`);
+    dialog.innerHTML = userTeamsHtml(username, body);
+  } catch (error) {
+    dialog.innerHTML = userTeamsHtml(username, errorBox(error.message));
+  }
+  dialog.querySelector(".close-dialog").onclick = () => dialog.close();
 }
 
-function bindLeagueForms(root, context) {
-  const showError = (message) => {
-    root.querySelector("#league-forms").outerHTML = leagueFormsHtml(message);
-    bindLeagueForms(root, context);
-  };
-  const openLeague = async (action) => {
-    try {
-      selectedLeagueId = (await action()).id;
-      render(root, context);
-    } catch (error) {
-      showError(error.message);
-    }
-  };
-  root.querySelector("#join-league").onclick = () => openLeague(() => api.joinLeague(root.querySelector("#invite-code").value));
-  root.querySelector("#create-league").onclick = () => {
-    const name = root.querySelector("#league-name").value.trim();
-    if (name) openLeague(() => api.createLeague(name));
-  };
+function userTeamsHtml(username, body) {
+  return `<header class="dialog-header"><h2 id="user-teams-title">${escapeHtml(username)}s hold</h2>
+    <button class="btn ghost close-dialog" autofocus>Luk</button></header><div class="dialog-body">${body}</div>`;
 }

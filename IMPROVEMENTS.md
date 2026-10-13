@@ -331,3 +331,70 @@ scored["part_a_raw"] = [part_a_raw(row, averages) for _, row in scored.iterrows(
 role_multiplier = AVERAGE_GAME_SCORE / scored.groupby("role").part_a_raw.mean()
 part_a = np.maximum(PART_A_FLOOR, scored.part_a_raw * scored.role.map(role_multiplier))
 ```
+
+---
+
+## 13. Ligaer fjernet – én fælles stilling
+
+**Filer:** `js/views/leaderboard.js`, `js/api.js`, `supabase/migrations/012_shared_leaderboard_images_price_reasons.sql`
+
+**Hvad blev ændret:**
+- Leaderboardet viser alle brugere. Valg af liga, "Opret liga" og "Join med kode" er fjernet.
+- Databasefunktionen `standings(tidspunkt)` erstatter `league_standings(liga, tidspunkt)`.
+- `api.js` har mistet `fetchMyLeagues`, `createLeague` og `joinLeague`. `fetchStandings` tager ikke længere en liga.
+- Ligatabellerne bliver i databasen, indtil den nye frontend er på `main`. Derefter fjernes de i migration 013, så den kørende side ikke går i stykker undervejs.
+
+**Hvorfor:**
+Spillet deles kun med en vennegruppe. Ligaer tilføjede tre tabeller, fire databasefunktioner og to formularer uden at give vennerne noget.
+
+**Før:**
+```js
+const leagues = await api.fetchMyLeagues();
+if (!leagues.length) { root.innerHTML = `…Du er ikke med i en liga endnu…${leagueFormsHtml()}`; … }
+const loadStandingsAt = createStandingsLoader(league.id, timeline);
+```
+
+**Efter:**
+```js
+const state = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
+```
+
+---
+
+## 14. Én holdvisning til Mine hold og andres hold
+
+**Filer:** `js/views/teamSummary.js` (ny), `js/views/mine.js`, `js/views/leaderboard.js`
+
+**Hvad blev ændret:**
+- Visningen af et brugerhold (spillere, billeder, pointbjælker og seriepoint) er flyttet fra `mine.js` til `teamSummary.js`.
+- `mine.js` og leaderboardets dialog kalder begge `phaseTeamsHtml(fase, valg)`.
+- `fetchMyPickPoints()` er blevet til `fetchPickPoints(brugerId)`, så den kan hente alle brugeres hold. RLS sørger for, at andres hold først kan læses efter fristen.
+
+**Hvorfor:**
+DRY og høj samhørighed: ét modul ved, hvordan et hold vises. Ændres visningen, ændres den begge steder.
+
+---
+
+## 15. Draft-siden husker brugerens tilstand, når den tegnes om
+
+**Filer:** `js/views/draft.js`
+
+**Hvad blev ændret:**
+- `isRulesOpen` gemmes i modulet. "Sådan får du point" starter foldet sammen og forbliver, som brugeren efterlod den.
+- `focusedElementSelector()` husker, hvilket kort, holdknap eller rolleplads der havde fokus, og sætter fokus tilbage efter omtegning.
+- `showMessage()` opdaterer kun statuslinjen, når holdnavnet rettes, så markøren bliver i feltet.
+
+**Hvorfor:**
+Siden tegnes helt om efter hvert valg. Det er enkelt, men nulstillede alt, brugeren selv havde gjort: reglerne foldede sig ud, og tastaturbrugere mistede deres plads.
+
+**Før:**
+```js
+return `<details class="rules-toggle" open><summary>Sådan får du point</summary>…`;
+```
+
+**Efter:**
+```js
+return `<details class="rules-toggle" ${isRulesOpen ? "open" : ""}><summary>Sådan får du point (valgfrit at læse)</summary>…`;
+```
+
+Hele UX-gennemgangen står i [`docs/ux-gennemgang.md`](docs/ux-gennemgang.md).

@@ -293,6 +293,30 @@ async function loadTournament(year: number) {
   return { tournamentId: tournament.id, phaseIdByKind: new Map(phases.map((phase) => [phase.kind, phase.id])) };
 }
 
+// ---------- Spillerbilleder ----------
+// Henter portrætter fra lolesports for spillere i turneringen, der mangler et billede.
+// Holdlisten er stor, så den hentes kun, når der faktisk mangler billeder.
+async function syncPlayerImages(tournamentId: number) {
+  const missing = dataOrThrow(await database.from("roster").select("player!inner(id, esports_player_id, image_url)")
+    .eq("tournament_id", tournamentId).is("player.image_url", null), "spillere uden billede") as any[];
+  if (!missing.length) return 0;
+  const imageByEsportsId = new Map<string, string>();
+  const teams = (await fetchEsportsApi("getTeams?hl=en-US")).teams;
+  for (const team of teams) {
+    for (const player of team.players ?? []) {
+      if (player.image) imageByEsportsId.set(player.id, player.image.replace(/^http:/, "https:"));
+    }
+  }
+  let updated = 0;
+  for (const { player } of missing) {
+    const imageUrl = imageByEsportsId.get(player.esports_player_id);
+    if (!imageUrl) continue;
+    dataOrThrow(await database.from("player").update({ image_url: imageUrl }).eq("id", player.id), "billede");
+    updated++;
+  }
+  return updated;
+}
+
 Deno.serve(async (request) => {
   const startedAt = Date.now();
   runLog.length = 0;
@@ -309,7 +333,8 @@ Deno.serve(async (request) => {
       }
       statsAdded += await ingestEvent(tournamentId, phaseIdByKind, event);
     }
-    return Response.json({ ok: true, events: events.length, statsAdded, log: runLog });
+    const imagesAdded = await syncPlayerImages(tournamentId);
+    return Response.json({ ok: true, events: events.length, statsAdded, imagesAdded, log: runLog });
   } catch (error) {
     return Response.json({ ok: false, error: String(error), log: runLog }, { status: 500 });
   }

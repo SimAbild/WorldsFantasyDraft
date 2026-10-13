@@ -1,0 +1,401 @@
+<title>Worlds Fantasy skitser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: mørk esports-skal, fast topnavigation, skitser som faner; desktop først, stabler på smal skærm */
+:root{
+  --bg:#07090d; --surface:#10141b; --raise:#171c25; --line:#252c38;
+  --fg:#eef2f7; --muted:#8b96a7; --accent:#4fd1e8; --gold:#e3b54d; --silver:#b9c3cf; --bronze:#c58a5a; --win:#4cc38a; --loss:#e0655b;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
+h2{font-size:28px;font-weight:700}
+h3{font-size:18px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.card:focus-visible,.slot:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* topbar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:28px;padding-block:0;min-height:60px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+.brand span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;padding:18px 12px;font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent}
+nav button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
+.user{margin-left:auto;font-size:13px;color:var(--muted)}
+.sketchnote{margin-block:18px 26px;padding:10px 14px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
+.sketchnote b{color:var(--fg)}
+section[role=tabpanel]{display:grid;gap:28px}
+
+/* login */
+.login{display:grid;place-items:center;padding-block:40px}
+.login form{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:28px;display:grid;gap:14px}
+label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:grid;gap:6px}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;color:var(--fg);font:inherit}
+.btn{background:var(--accent);color:#04161a;border:0;border-radius:4px;padding:11px 18px;font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.08em;text-transform:uppercase}
+.btn.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
+
+/* forside */
+.hero{border-bottom:1px solid var(--line);padding-bottom:22px;display:grid;gap:6px}
+.hero .stage{font-family:var(--display);font-size:15px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.hero h1{font-size:clamp(40px,6vw,64px);font-weight:800;line-height:.95}
+.matches{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.match{flex:0 0 200px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;gap:6px}
+.match .row{display:flex;justify-content:space-between;font-family:var(--display);font-size:20px;font-weight:600}
+.match .row.l{color:var(--muted)}
+.match small{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.match small.live{color:var(--loss)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.cols>*{min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:grid;gap:12px;align-content:start}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line)}
+td.r,th.r{text-align:right}
+.team{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.03em}
+.rec{display:inline-block;min-width:38px;text-align:center;border-radius:3px;padding:1px 6px;font-family:var(--mono);font-size:12px;background:var(--raise)}
+.rec.q{background:color-mix(in srgb,var(--win) 25%,transparent);color:var(--win)}
+.rec.o{background:color-mix(in srgb,var(--loss) 22%,transparent);color:var(--loss)}
+
+/* draft */
+.explain{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.explain>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
+.explain p{margin:0;font-size:14px;color:var(--muted)}
+.explain p b{color:var(--fg);font-weight:600}
+.formula{font-family:var(--mono);font-size:13px;color:var(--accent)}
+details.how summary{cursor:pointer;font-family:var(--display);font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.teams{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.tchip{flex:0 0 auto;display:grid;gap:2px;justify-items:start;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:112px;text-align:left}
+.tchip .pr{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tchip .tn{font-family:var(--display);font-size:22px;font-weight:700;line-height:1}
+.tchip .tp{font-size:12px;color:var(--muted)}
+.tchip[aria-pressed="true"]{border-color:var(--accent);background:var(--raise)}
+.dropdown{background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:16px;display:grid;gap:12px}
+.dropdown header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.cards{display:flex;gap:12px;flex-wrap:wrap}
+
+.card{--rim:var(--line);width:128px;aspect-ratio:3/4.2;max-width:100%;position:relative;border-radius:10px 10px 18px 18px;padding:10px;display:grid;grid-template-rows:auto 1fr auto auto;background:
+  linear-gradient(160deg,color-mix(in srgb,var(--rim) 30%,var(--raise)) 0%,var(--raise) 55%,var(--surface) 100%);border:1.5px solid var(--rim);cursor:grab;user-select:none}
+.card[data-tier=favorit]{--rim:var(--gold)} .card[data-tier=staerk]{--rim:var(--silver)} .card[data-tier=middel]{--rim:var(--bronze)} .card[data-tier=underdog]{--rim:#5d6878}
+.card .top-row{display:flex;justify-content:space-between;align-items:flex-start}
+.card .price{font-family:var(--display);font-size:28px;font-weight:800;line-height:.9}
+.card .price small{display:block;font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600}
+.card .role{font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right}
+.card .face{display:grid;place-items:center}
+.card .face span{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--rim);font-family:var(--display);font-size:22px;font-weight:700;color:var(--muted)}
+.card .name{font-family:var(--display);font-size:20px;font-weight:700;text-align:center;text-transform:uppercase;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .tm{font-size:11px;text-align:center;color:var(--muted);letter-spacing:.1em}
+.card[aria-disabled="true"]{opacity:.35;cursor:not-allowed}
+.card.dragging{opacity:.5}
+
+.myteams{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.myteam{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px;min-width:0}
+.myteam header{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.myteam input{font-family:var(--display);font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;width:min(240px,100%)}
+.budget{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar.over i{background:var(--loss)}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.slot{min-height:150px;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;align-content:center;gap:4px;padding:6px;text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg);min-width:0}
+.slot.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--bg))}
+.slot .card{width:100%;cursor:pointer}
+.slot .card .name{font-size:16px}
+.slot .card .price{font-size:22px}
+.slot .card .face span{width:40px;height:40px;font-size:16px}
+.rules{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.rules .bad{color:var(--loss)}
+.rules .ok{color:var(--win)}
+.lockbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px}
+.toast{color:var(--win);font-size:14px}
+
+.phases{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;text-align:left;display:grid;gap:2px}
+.phase b{font-family:var(--display);font-size:19px;letter-spacing:.04em;text-transform:uppercase}
+.phase span{font-size:12px;color:var(--muted)}
+.phase .st{font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.phase .st.open{color:var(--win)} .phase .st.done{color:var(--muted)} .phase .st.soon{color:var(--gold)}
+.phase[aria-pressed="true"]{border-color:var(--accent);background:var(--raise)}
+@media (max-width:640px){.phases{grid-template-columns:1fr 1fr}}
+/* leaderboard */
+.lb-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.slider{display:grid;gap:6px;min-width:min(420px,100%)}
+input[type=range]{accent-color:var(--accent);padding:0}
+.rank{font-family:var(--display);font-size:24px;font-weight:800;width:36px}
+.lead td{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.delta{font-family:var(--mono);font-size:12px}
+.delta.up{color:var(--win)} .delta.dn{color:var(--loss)}
+.leaders{display:flex;gap:4px;flex-wrap:wrap}
+.leaders span{font-size:11px;font-family:var(--mono);padding:3px 6px;border-radius:3px;background:var(--raise);color:var(--muted)}
+.leaders span.cur{background:var(--accent);color:#04161a}
+
+/* mine hold */
+.score{font-family:var(--display);font-size:44px;font-weight:800;line-height:1}
+.pbar{display:grid;grid-template-columns:minmax(0,1.3fr) 1fr 54px;gap:10px;align-items:center;font-size:14px}
+.pbar .bar{height:10px}
+.pbar .bar i{background:var(--gold)}
+.mvp{font-size:10px;letter-spacing:.1em;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 4px;margin-left:6px}
+
+@media (max-width:860px){
+  .cols,.myteams,.explain{grid-template-columns:1fr}
+  .slots{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:480px){ .slots{grid-template-columns:repeat(2,1fr)} .wrap{padding-inline:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="wrap">
+    <div class="brand">Worlds <span>Fantasy</span></div>
+    <nav role="tablist" aria-label="Skitser">
+      <button role="tab" id="t-login" aria-controls="p-login" aria-selected="false">Login</button>
+      <button role="tab" id="t-home" aria-controls="p-home" aria-selected="true">Forside</button>
+      <button role="tab" id="t-draft" aria-controls="p-draft" aria-selected="false">Fantasy draft</button>
+      <button role="tab" id="t-lb" aria-controls="p-lb" aria-selected="false">Leaderboard</button>
+      <button role="tab" id="t-mine" aria-controls="p-mine" aria-selected="false">Mine hold</button>
+    </nav>
+    <div class="user">Logget ind som <b>simon</b></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <p class="sketchnote"><b>Skitse til PC-browser.</b> Alle hold, spillere, resultater og brugere er eksempeldata (Worlds 2025-hold). Ingen data gemmes; knapperne viser kun, hvordan flowet skal føles.</p>
+
+  <!-- LOGIN -->
+  <section role="tabpanel" id="p-login" aria-labelledby="t-login" hidden>
+    <div class="login">
+      <form id="loginForm">
+        <h2>Log ind</h2>
+        <label for="lu">Brugernavn<input id="lu" value="simon" autocomplete="username"></label>
+        <label for="lp">Password<input id="lp" type="password" value="hemmeligt" autocomplete="current-password"></label>
+        <button class="btn" type="submit">Log ind</button>
+        <button class="btn ghost" type="button">Opret bruger</button>
+        <p class="muted" style="margin:0;font-size:13px">Glemt password? Skriv til Simon, så nulstiller han det.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- FORSIDE -->
+  <section role="tabpanel" id="p-home" aria-labelledby="t-home">
+    <div class="hero">
+      <div class="stage">Worlds 2026 · Swiss · Runde 2</div>
+      <h1>Swiss stage</h1>
+      <p class="muted" style="margin:0">Draften for Swiss er låst. Næste kamp: GEN mod T1 i dag kl. 11:00.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Kampprogram · dansk tid</h3>
+      <div class="matches" id="matches"></div>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <h3>Swiss-stilling</h3>
+        <div class="tbl"><table id="standings"></table></div>
+      </div>
+      <div class="panel">
+        <h3>Holdstats pr. kamp</h3>
+        <div class="tbl"><table id="teamstats"></table></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Bedste spillere i Swiss (fantasy-point pr. kamp)</h3>
+      <div class="tbl"><table id="topplayers"></table></div>
+    </div>
+  </section>
+
+  <!-- DRAFT -->
+  <section role="tabpanel" id="p-draft" aria-labelledby="t-draft" hidden>
+    <div class="phases" id="phases" role="group" aria-label="Faser"></div>
+    <div class="lb-head">
+      <div>
+        <div class="stage" id="phaseStage" style="font-family:var(--display);letter-spacing:.14em;color:var(--accent);text-transform:uppercase"></div>
+        <h2 id="phaseTitle"></h2>
+      </div>
+    </div>
+
+    <details class="how" open>
+      <summary>Sådan får du point</summary>
+      <div class="explain">
+        <div>
+          <h3>Point pr. kamp</h3>
+          <p>En spiller får <b>omkring 20 point</b> i en helt gennemsnitlig kamp for sin rolle. Bedre end rollens snit giver flere, dårligere giver færre.</p>
+          <p class="formula">20 + 10 × præstation + MVP/ACE</p>
+          <p>Bedste spiller på vinderholdet og bedste på taberholdet får <b>+3</b>. En stærk spiller på et tabende hold kan derfor slå en svag spiller på vinderholdet.</p>
+        </div>
+        <div>
+          <h3>Fra kamp til fase</h3>
+          <p>Seriepoint er <b>snittet</b> af spillerens kampe i serien. Fasepoint er <b>snittet</b> af hans serier i fasen.</p>
+          <p>Antal spillede kampe giver ikke ekstra point. Et hold, der ryger ud tidligt, kan stadig give mange point.</p>
+          <p>Din score er summen af dine 5 hold: Swiss A, Swiss B, kvartfinale, semifinale og finale.</p>
+        </div>
+        <div>
+          <h3>Priser og regler</h3>
+          <p>Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale og semifinale: <b>23</b> / <b>17</b>. Finalen er fri.</p>
+          <p>Budget <b>100</b> pr. hold. Én spiller pr. rolle. Højst <b>2 spillere fra samme prohold</b> på tværs af begge Swiss-hold. En spiller kan ikke være på begge.</p>
+        </div>
+      </div>
+    </details>
+
+    <div class="panel">
+      <h3>Hold efter lolesports power ranking</h3>
+      <div class="teams" id="teamchips" role="group" aria-label="Vælg hold"></div>
+      <div class="dropdown" id="dropdown"></div>
+    </div>
+
+    <div class="myteams" id="myteams"></div>
+
+    <div class="lockbar">
+      <div class="rules" id="rules"></div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span class="toast" id="toast" role="status"></span>
+        <button class="btn" id="lockin">Lock in teams</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section role="tabpanel" id="p-lb" aria-labelledby="t-lb" hidden>
+    <div class="lb-head">
+      <div>
+        <h2>Leaderboard</h2>
+        <p class="muted" style="margin:0">Liga: Vennerne · 6 spillere</p>
+      </div>
+      <div class="slider">
+        <label for="after">Stilling efter kamp <span id="afterLabel" class="num"></span></label>
+        <input type="range" id="after" min="1" max="8" value="8">
+        <div class="leaders" id="leaders" aria-label="Fører efter hver kamp"></div>
+      </div>
+    </div>
+    <div class="panel"><div class="tbl"><table id="lbtable"></table></div></div>
+  </section>
+
+  <!-- MINE HOLD -->
+  <section role="tabpanel" id="p-mine" aria-labelledby="t-mine" hidden>
+    <div class="lb-head">
+      <div><h2>Mine hold</h2><p class="muted" style="margin:0">Swiss efter 8 kampe · point opdateres efter hver kamp</p></div>
+      <div style="text-align:right"><div class="muted" style="font-size:12px;letter-spacing:.1em;text-transform:uppercase">Swiss i alt</div><div class="score num" id="swissTotal"></div></div>
+    </div>
+    <div class="myteams" id="minehold"></div>
+  </section>
+</main>
+
+<script>
+// Eksempeldata: hold i power ranking-rækkefølge, med Swiss-tier
+const TEAMS=[
+ {c:"GEN",n:"Gen.G",r:"LCK",t:"favorit",p:["Kiin","Canyon","Chovy","Ruler","Duro"]},
+ {c:"HLE",n:"Hanwha Life",r:"LCK",t:"favorit",p:["Zeus","Peanut","Zeka","Viper","Delight"]},
+ {c:"BLG",n:"Bilibili Gaming",r:"LPL",t:"favorit",p:["Bin","Beichuan","Knight","Elk","ON"]},
+ {c:"T1",n:"T1",r:"LCK",t:"staerk",p:["Doran","Oner","Faker","Gumayusi","Keria"]},
+ {c:"AL",n:"Anyone's Legend",r:"LPL",t:"staerk",p:["Flandre","Tarzan","Shanks","Hope","Kael"]},
+ {c:"G2",n:"G2 Esports",r:"LEC",t:"middel",p:["BrokenBlade","SkewMond","Caps","Hans Sama","Labrov"]},
+ {c:"KC",n:"Karmine Corp",r:"LEC",t:"middel",p:["Canna","Yike","Vladi","Caliste","Targamas"]},
+ {c:"FLY",n:"FlyQuest",r:"LTA",t:"underdog",p:["Bwipo","Inspired","Quad","Massu","Busio"]},
+ {c:"CFO",n:"CTBC Flying Oyster",r:"LCP",t:"underdog",p:["Rest","JunJia","HongQ","Doggo","Kaiwing"]},
+];
+const ROLES=["Top","Jungle","Mid","ADC","Support"];
+const PRICE={favorit:26,staerk:22,middel:18,underdog:14};
+const TIERNAME={favorit:"Favorit",staerk:"Stærk",middel:"Middel",underdog:"Underdog"};
+const PLAYERS=[];TEAMS.forEach((t,ti)=>t.p.forEach((n,ri)=>PLAYERS.push({id:t.c+"-"+ri,name:n,team:t.c,role:ri,tier:t.t,price:PRICE[t.t],pts:+(17+((ti*7+ri*13)%11)*.9).toFixed(1)})));
+const byId=id=>PLAYERS.find(p=>p.id===id);
+const $=s=>document.querySelector(s);
+
+// Faner
+document.querySelectorAll('[role=tab]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[role=tab]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('[role=tabpanel]').forEach(p=>p.hidden=p.id!==b.getAttribute('aria-controls'));
+}));
+$('#loginForm').addEventListener('submit',e=>{e.preventDefault();$('#t-home').click();});
+
+// Forside
+const MATCHES=[["GEN","FLY",1,0,"Færdig"],["HLE","CFO",1,0,"Færdig"],["BLG","KC",0,1,"Færdig"],["T1","AL",1,0,"Færdig"],["G2","FLY",1,0,"Færdig"],["AL","CFO",1,0,"Færdig"],["HLE","BLG",1,0,"Færdig"],["KC","G2",0,1,"Færdig"],["GEN","T1",0,0,"Live"],["BLG","FLY",null,null,"14:00"]];
+const DATES=["Fre 23. okt · 10:00","Fre 23. okt · 11:00","Fre 23. okt · 12:00","Fre 23. okt · 13:00","Lør 24. okt · 10:00","Lør 24. okt · 11:00","Lør 24. okt · 12:00","Lør 24. okt · 13:00","Søn 25. okt · 11:00","Søn 25. okt · 14:00"];
+$('#matches').innerHTML=MATCHES.map(([a,b,x,y,s],i)=>{const done=x!==null&&s!=="Live";return `<div class="match"><small>${DATES[i].replace(/ · .*/,"")}</small><small class="${s==="Live"?"live":""}">${s==="Live"?"● Live · "+DATES[i].split(" · ")[1]:s==="Færdig"?"Færdig · Bo1":DATES[i].split(" · ")[1]}</small><div class="row ${done&&x<y?"l":""}"><span>${a}</span><span class="num">${x??"–"}</span></div><div class="row ${done&&y<x?"l":""}"><span>${b}</span><span class="num">${y??"–"}</span></div></div>`}).join('');
+const ST=[["GEN",1,0],["HLE",2,0],["T1",1,0],["AL",1,1],["KC",1,1],["G2",2,0],["BLG",1,1],["CFO",0,2],["FLY",0,3]].sort((a,b)=>b[1]-a[1]||a[2]-b[2]);
+$('#standings').innerHTML='<tr><th>Hold</th><th>Region</th><th class="r">Record</th></tr>'+ST.map(([c,w,l])=>{const t=TEAMS.find(x=>x.c===c);return `<tr><td class="team">${t.n}</td><td class="muted">${t.r}</td><td class="r"><span class="rec ${l===3?"o":w===3?"q":""}">${w}-${l}</span></td></tr>`}).join('');
+$('#teamstats').innerHTML='<tr><th>Hold</th><th class="r">Kills</th><th class="r">Drager</th><th class="r">Baroner</th><th class="r">Tårne</th></tr>'+TEAMS.slice(0,7).map((t,i)=>`<tr><td class="team">${t.c}</td><td class="r num">${(17-i*.9).toFixed(1)}</td><td class="r num">${(3.1-i*.2).toFixed(1)}</td><td class="r num">${(1.2-i*.1).toFixed(1)}</td><td class="r num">${(8.6-i*.5).toFixed(1)}</td></tr>`).join('');
+$('#topplayers').innerHTML='<tr><th>Spiller</th><th>Hold</th><th>Rolle</th><th class="r">Pris</th><th class="r">Point/kamp</th></tr>'+[...PLAYERS].sort((a,b)=>b.pts-a.pts).slice(0,6).map(p=>`<tr><td class="team">${p.name}</td><td>${p.team}</td><td class="muted">${ROLES[p.role]}</td><td class="r num">${p.price}</td><td class="r num">${p.pts}</td></tr>`).join('');
+
+// Draft
+const draft={A:{name:"Baron Bandits",slots:[null,null,null,null,null]},B:{name:"Drake Hunters",slots:[null,null,null,null,null]}};
+draft.A.slots=["T1-0","GEN-1",null,"FLY-3",null];draft.B.slots=[null,null,"G2-2",null,"KC-4"];
+let openTeam="T1";
+const used=()=>new Set([...draft.A.slots,...draft.B.slots].filter(Boolean));
+const teamCount=c=>[...used()].filter(id=>byId(id).team===c).length;
+const cost=k=>draft[k].slots.filter(Boolean).reduce((s,id)=>s+byId(id).price,0);
+function cardHTML(p,attrs=""){const init=p.name.slice(0,2).toUpperCase();return `<div class="card" data-tier="${p.tier}" data-id="${p.id}" tabindex="0" ${attrs}><div class="top-row"><div class="price">${p.price}<small>${TIERNAME[p.tier]}</small></div><div class="role">${ROLES[p.role]}</div></div><div class="face"><span>${init}</span></div><div class="name">${p.name}</div><div class="tm">${p.team}</div></div>`}
+function renderChips(){$('#teamchips').innerHTML=TEAMS.map((t,i)=>`<button class="tchip" aria-pressed="${t.c===openTeam}" data-c="${t.c}"><span class="pr">#${i+1} · ${t.r}</span><span class="tn">${t.c}</span><span class="tp">${TIERNAME[t.t]} · ${PRICE[t.t]}</span></button>`).join('');
+  document.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{openTeam=b.dataset.c;render();});}
+function renderDropdown(){const t=TEAMS.find(x=>x.c===openTeam);const u=used();
+  $('#dropdown').innerHTML=`<header><h3 style="color:var(--fg)">${t.n} · ${t.r}</h3><span class="muted" style="font-size:13px">Træk et kort til en rolle, eller klik for at sætte det på Hold A (shift+klik: Hold B)</span></header><div class="cards">${PLAYERS.filter(p=>p.team===t.c).map(p=>cardHTML(p,`draggable="${!u.has(p.id)}" aria-disabled="${u.has(p.id)}"`)).join('')}</div>`;
+  document.querySelectorAll('#dropdown .card').forEach(el=>{
+    el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',el.dataset.id);el.classList.add('dragging');});
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    el.addEventListener('click',e=>place(el.dataset.id,e.shiftKey?"B":"A"));
+    el.addEventListener('keydown',e=>{if(e.key==="Enter")place(el.dataset.id,e.shiftKey?"B":"A");});
+  });}
+function place(id,k){if(used().has(id))return;const p=byId(id);draft[k].slots[p.role]=id;$('#toast').textContent="";render();}
+function renderTeams(){
+  $('#myteams').innerHTML=["A","B"].map(k=>{const c=cost(k),over=c>100;return `<div class="myteam"><header><label for="name${k}" style="gap:4px">Swiss-hold ${k}<input id="name${k}" value="${draft[k].name}"></label><div class="budget" style="min-width:160px"><span><b class="num" style="color:var(--fg)">${c}</b> / 100 brugt</span><div class="bar ${over?"over":""}"><i style="width:${Math.min(100,c)}%"></i></div></div></header>
+  <div class="slots">${ROLES.map((r,i)=>{const id=draft[k].slots[i];return `<div class="slot" data-k="${k}" data-role="${i}">${id?cardHTML(byId(id),'title="Klik for at fjerne"'):`<span>${r}</span><span style="font-size:10px">træk spiller hertil</span>`}</div>`}).join('')}</div></div>`}).join('');
+  document.querySelectorAll('#myteams input').forEach(inp=>inp.oninput=()=>{draft[inp.id.slice(-1)].name=inp.value;});
+  document.querySelectorAll('.slot').forEach(s=>{
+    s.addEventListener('dragover',e=>{e.preventDefault();s.classList.add('over');});
+    s.addEventListener('dragleave',()=>s.classList.remove('over'));
+    s.addEventListener('drop',e=>{e.preventDefault();s.classList.remove('over');const id=e.dataTransfer.getData('text/plain');const p=byId(id);
+      if(!p)return; if(p.role!==+s.dataset.role){$('#toast').textContent="";$('#rules').insertAdjacentHTML('afterbegin',`<span class="bad">${p.name} er ${ROLES[p.role]} og kan kun stå på ${ROLES[p.role]}.</span>`);return;}
+      place(id,s.dataset.k);});
+    const c=s.querySelector('.card');if(c)c.onclick=()=>{draft[s.dataset.k].slots[+s.dataset.role]=null;render();};
+  });}
+function renderRules(){const msgs=[];
+  ["A","B"].forEach(k=>{const c=cost(k);msgs.push(c>100?`<span class="bad">Hold ${k} er ${c-100} over budget</span>`:`<span class="ok">Hold ${k}: ${100-c} tilbage</span>`);});
+  TEAMS.forEach(t=>{const n=teamCount(t.c);if(n>2)msgs.push(`<span class="bad">${n} spillere fra ${t.c} (højst 2)</span>`);});
+  const empty=[...draft.A.slots,...draft.B.slots].filter(x=>!x).length;msgs.push(empty?`<span>${empty} roller mangler</span>`:`<span class="ok">Alle 10 roller er fyldt</span>`);
+  $('#rules').innerHTML=msgs.join('');}
+// Faser: Swiss har to hold, resten ét
+const PHASES=[
+ {k:"playin",n:"Play-In",d:"15.–18. okt",st:"done",s:"Låst",teams:1,lock:"Låst 15. okt kl. 09:00",title:"Dit Play-In-hold"},
+ {k:"swiss",n:"Swiss",d:"23.–31. okt",st:"open",s:"Åben",teams:2,lock:"Låser 23. okt kl. 09:00",title:"Byg dine to Swiss-hold"},
+ {k:"qf",n:"Kvartfinale",d:"3.–6. nov",st:"soon",s:"Åbner efter Swiss",teams:1,lock:"Låser 3. nov",title:"Byg dit kvartfinalehold"},
+ {k:"sf",n:"Semifinale",d:"7.–8. nov",st:"soon",s:"Åbner efter QF",teams:1,lock:"Låser 7. nov",title:"Byg dit semifinalehold"},
+ {k:"final",n:"Finale",d:"14. nov",st:"soon",s:"Åbner efter SF",teams:1,lock:"Låser 14. nov",title:"Byg dit finalehold (frit valg)"}];
+let phase="swiss";
+function renderPhases(){const ph=PHASES.find(p=>p.k===phase);
+  $('#phases').innerHTML=PHASES.map(p=>`<button class="phase" aria-pressed="${p.k===phase}" data-k="${p.k}"><span class="st ${p.st}">${p.s}</span><b>${p.n}</b><span>${p.d} · ${p.teams} hold</span></button>`).join('');
+  document.querySelectorAll('.phase').forEach(b=>b.onclick=()=>{phase=b.dataset.k;render();});
+  $('#phaseStage').textContent=ph.n+" · "+ph.lock;$('#phaseTitle').textContent=ph.title;
+  const two=ph.teams===2;document.querySelectorAll('.myteam').forEach((el,i)=>el.hidden=i===1&&!two);
+  $('#myteams').style.gridTemplateColumns=two?"":"1fr";$('#lockin').textContent=two?"Lock in teams":"Lock in team";}
+function render(){renderChips();renderDropdown();renderTeams();renderRules();renderPhases();}
+$('#lockin').onclick=()=>{$('#toast').textContent="Gemt. Du kan ændre holdene indtil 23. okt kl. 09:00.";};
+render();
+
+// Leaderboard: kumulative point efter hver kamp (eksempel)
+const USERS=["simon","mikkel","jonas","sara","emil","freja"];
+const GAIN=[[41,38,44,36,40,42],[39,45,37,41,38,36],[44,40,39,46,37,41],[38,42,47,39,44,40],[46,39,41,40,45,38],[40,47,38,43,39,46],[45,41,42,38,47,39],[43,40,46,44,38,42]];
+const MATCHNAME=MATCHES.slice(0,8).map(m=>m[0]+"–"+m[1]);
+function totals(n){return USERS.map((u,i)=>({u,p:GAIN.slice(0,n).reduce((s,g)=>s+g[i],0)})).sort((a,b)=>b.p-a.p);}
+function renderLB(){const n=+$('#after').value;$('#afterLabel').textContent=`${n} (${MATCHNAME[n-1]})`;
+  const now=totals(n),prev=n>1?totals(n-1):now;
+  $('#lbtable').innerHTML='<tr><th>#</th><th>Bruger</th><th class="r">Point</th><th class="r">Seneste kamp</th><th class="r">Placering</th></tr>'+now.map((x,i)=>{const pi=prev.findIndex(y=>y.u===x.u),d=pi-i,g=GAIN[n-1][USERS.indexOf(x.u)];
+    return `<tr class="${i===0?"lead":""}"><td class="rank">${i+1}</td><td class="team">${x.u}${x.u==="simon"?' <span class="muted" style="font-size:12px">(dig)</span>':''}</td><td class="r num">${x.p}</td><td class="r num">+${g}</td><td class="r"><span class="delta ${d>0?"up":d<0?"dn":""}">${d>0?"▲ "+d:d<0?"▼ "+(-d):"–"}</span></td></tr>`}).join('');
+  $('#leaders').innerHTML=GAIN.map((_,i)=>`<span class="${i===n-1?"cur":""}" title="${MATCHNAME[i]}">K${i+1}: ${totals(i+1)[0].u}</span>`).join('');}
+$('#after').oninput=renderLB;renderLB();
+
+// Mine hold: point pr. spiller og hold
+function renderMine(){let all=0;
+  $('#minehold').innerHTML=[["Baron Bandits",["T1-0","GEN-1","AL-2","FLY-3","HLE-4"]],["Drake Hunters",["KC-0","CFO-1","G2-2","BLG-3","KC-4"]]].map(([nm,ids],ix)=>{
+    const ps=ids.map(id=>byId(id)),tot=ps.reduce((s,p)=>s+p.pts,0);all+=tot;const max=Math.max(...ps.map(p=>p.pts));
+    return `<div class="myteam"><header><div><h3>Swiss-hold ${ix?"B":"A"}</h3><div class="team" style="font-size:24px">${nm}</div></div><div class="score num">${tot.toFixed(1)}</div></header>
+    <div style="display:grid;gap:8px">${ps.map(p=>`<div class="pbar"><span><b>${p.name}</b> <span class="muted" style="font-size:12px">${ROLES[p.role]} · ${p.team}</span>${p.pts===max?'<span class="mvp">MVP</span>':''}</span><div class="bar"><i style="width:${(p.pts/30*100).toFixed(0)}%"></i></div><span class="num" style="text-align:right">${p.pts.toFixed(1)}</span></div>`).join('')}</div>
+    <p class="muted" style="margin:0;font-size:13px">Holdets point = summen af spillernes fasepoint (snit af deres serier indtil nu).</p></div>`}).join('');
+  $('#swissTotal').textContent=all.toFixed(1);}
+renderMine();
+</script>

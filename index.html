@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Worlds Fantasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="top" id="topbar" hidden>
+    <div class="wrap">
+      <div class="brand">Worlds <span>Fantasy</span></div>
+      <nav role="tablist" aria-label="Sider">
+        <button role="tab" data-view="home">Forside</button>
+        <button role="tab" data-view="draft">Fantasy draft</button>
+        <button role="tab" data-view="leaderboard">Leaderboard</button>
+        <button role="tab" data-view="mine">Mine hold</button>
+      </nav>
+      <div class="user"><span id="whoami"></span> · <button class="link" id="logout">Log ud</button></div>
+    </div>
+  </header>
+  <main class="wrap" id="view"></main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

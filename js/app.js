@@ -1,47 +1,57 @@
-// Starter appen: tjekker login, henter turnering og faser, og skifter mellem fanerne
+// Ansvar: Starter appen – tjekker login, henter turnering og faser, og skifter mellem fanerne
 import * as api from "./api.js";
 import { errorBox } from "./ui.js";
-import * as login from "./views/login.js";
-import * as home from "./views/home.js";
-import * as draft from "./views/draft.js";
-import * as leaderboard from "./views/leaderboard.js";
-import * as mine from "./views/mine.js";
+import * as loginView from "./views/login.js";
+import * as homeView from "./views/home.js";
+import * as draftView from "./views/draft.js";
+import * as leaderboardView from "./views/leaderboard.js";
+import * as myTeamsView from "./views/mine.js";
 
-const VIEWS = { home, draft, leaderboard, mine };
-const root = document.getElementById("view");
+const VIEWS = { home: homeView, draft: draftView, leaderboard: leaderboardView, mine: myTeamsView };
+const DEFAULT_VIEW = "home";
+const viewRoot = document.getElementById("view");
 const topbar = document.getElementById("topbar");
-let ctx = null;
+let context = null;
 
-async function show(name) {
-  const view = VIEWS[name] ? name : "home";
-  document.querySelectorAll("nav [data-view]").forEach((b) => b.setAttribute("aria-selected", b.dataset.view === view));
-  if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
-  root.innerHTML = `<p class="muted">Henter…</p>`;
+async function showView(name) {
+  const viewName = VIEWS[name] ? name : DEFAULT_VIEW;
+  markActiveTab(viewName);
+  if (location.hash !== `#${viewName}`) history.replaceState(null, "", `#${viewName}`);
+  viewRoot.innerHTML = `<p class="muted">Henter…</p>`;
   try {
-    await VIEWS[view].render(root, ctx);
-  } catch (ex) {
-    root.innerHTML = errorBox(`Noget gik galt: ${ex.message}`);
+    await VIEWS[viewName].render(viewRoot, context);
+  } catch (error) {
+    viewRoot.innerHTML = errorBox(`Noget gik galt: ${error.message}`);
   }
+}
+
+function markActiveTab(viewName) {
+  document.querySelectorAll("nav [data-view]").forEach((tab) => tab.setAttribute("aria-selected", tab.dataset.view === viewName));
+}
+
+async function loadContext(user) {
+  const [profile, tournament] = await Promise.all([api.fetchProfile(user.id), api.fetchCurrentTournament()]);
+  const phases = await api.fetchPhases(tournament.id);
+  return { user, profile, tournament, phases };
 }
 
 async function start() {
-  const user = await api.currentUser();
+  const user = await api.fetchCurrentUser();
   if (!user) {
     topbar.hidden = true;
-    return login.render(root, { onLoggedIn: start });
+    loginView.render(viewRoot, { onLoggedIn: start });
+    return;
   }
   try {
-    const [profile, tournament] = await Promise.all([api.myProfile(user.id), api.tournament()]);
-    const phases = await api.phases(tournament.id);
-    ctx = { user, profile, tournament, phases };
-    document.getElementById("whoami").textContent = profile.username;
+    context = await loadContext(user);
+    document.getElementById("whoami").textContent = context.profile.username;
     topbar.hidden = false;
-    show(location.hash.slice(1));
-  } catch (ex) {
-    root.innerHTML = errorBox(`Kunne ikke hente data: ${ex.message}`);
+    showView(location.hash.slice(1));
+  } catch (error) {
+    viewRoot.innerHTML = errorBox(`Kunne ikke hente data: ${error.message}`);
   }
 }
 
-document.querySelectorAll("nav [data-view]").forEach((b) => b.onclick = () => show(b.dataset.view));
+document.querySelectorAll("nav [data-view]").forEach((tab) => { tab.onclick = () => showView(tab.dataset.view); });
 document.getElementById("logout").onclick = async () => { await api.signOut(); start(); };
 start();

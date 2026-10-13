@@ -1,0 +1,2 @@
+-- Ansvar: Navnet hentes fra player, så også ugyldige valg (fx reserver) nævnes ved navn i fejlbeskeden.
+-- Ændringen er allerede indarbejdet i draft_choices i 010_submit_draft_via_player_card.sql.

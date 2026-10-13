@@ -1,104 +1,137 @@
-// Leaderboard: stilling i ligaen, og hvem der førte efter hver afsluttet serie
+// Ansvar: Leaderboard-siden – stilling i ligaen, tidslinje over hvem der førte, og oprettelse af ligaer
 import * as api from "../api.js";
-import { esc, day, time, errorBox } from "../ui.js";
+import { escapeHtml, formatDay, formatTime, errorBox } from "../ui.js";
+import { groupSeriesRows, seriesTimeline } from "../domain/series.js";
 
-let selectedLeague = null;
+const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
+const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
 
-function leagueForms(err = "") {
-  return `<div class="panel"><h3>Ligaer</h3>
-    <div class="row">
-      <label for="jc">Invitationskode<input id="jc" maxlength="8" placeholder="fx 3fa9c21b"></label>
-      <button class="btn" id="join">Join liga</button>
-    </div>
-    <div class="row">
-      <label for="ln">Ny liga<input id="ln" maxlength="40" placeholder="Vennerne"></label>
-      <button class="btn ghost" id="create">Opret liga</button>
-    </div>
-    ${err ? errorBox(err) : ""}</div>`;
+let selectedLeagueId = null;
+
+export async function render(root, context) {
+  const leagues = await api.fetchMyLeagues();
+  if (!leagues.length) {
+    root.innerHTML = `<h2>Leaderboard</h2><p class="muted">Du er ikke med i en liga endnu. Join med en kode fra en ven, eller opret din egen.</p>${leagueFormsHtml()}`;
+    bindLeagueForms(root, context);
+    return;
+  }
+  if (!leagues.some((league) => league.id === selectedLeagueId)) selectedLeagueId = leagues[0].id;
+  const league = leagues.find((item) => item.id === selectedLeagueId);
+  const seriesRows = await api.fetchSeriesRows(context.phases.map((phase) => phase.id));
+  const timeline = seriesTimeline(groupSeriesRows(seriesRows));
+  const standingsAt = createStandingsCache(league.id, timeline);
+  const state = { leagues, league, timeline, position: timeline.length, standingsAt };
+  await draw(root, context, state);
 }
 
-export async function render(root, ctx) {
-  const { phases, user } = ctx;
-  const leagues = await api.myLeagues();
-  const wireForms = () => {
-    root.querySelector("#join").onclick = async () => {
-      try { selectedLeague = (await api.joinLeague(root.querySelector("#jc").value)).id; render(root, ctx); }
-      catch (ex) { root.querySelector(".panel:last-child").outerHTML = leagueForms(ex.message); wireForms(); }
-    };
-    root.querySelector("#create").onclick = async () => {
-      const name = root.querySelector("#ln").value.trim();
-      if (!name) return;
-      try { selectedLeague = (await api.createLeague(name)).id; render(root, ctx); }
-      catch (ex) { root.querySelector(".panel:last-child").outerHTML = leagueForms(ex.message); wireForms(); }
-    };
-  };
-
-  if (!leagues.length) {
-    root.innerHTML = `<h2>Leaderboard</h2><p class="muted">Du er ikke med i en liga endnu. Join med en kode fra en ven, eller opret din egen.</p>${leagueForms()}`;
-    return wireForms();
-  }
-  if (!leagues.some((l) => l.id === selectedLeague)) selectedLeague = leagues[0].id;
-  const league = leagues.find((l) => l.id === selectedLeague);
-
-  // Tidslinje: hver afsluttet serie er et punkt, hvor stillingen kan ses
-  const rows = await api.series(phases.map((p) => p.id));
-  const steps = [...new Map(rows.filter((r) => r.last_game_ended_at).map((r) => [r.series_id, r])).values()]
-    .map((r) => ({ at: r.last_game_ended_at, label: rows.filter((x) => x.series_id === r.series_id).map((x) => x.team_code).join("–") }))
-    .sort((a, b) => a.at.localeCompare(b.at));
-  let pos = steps.length; // 0 = før første kamp, steps.length = nu
-
+// Position 0 = før første kamp, position timeline.length = nu. Hver stilling hentes kun én gang.
+function createStandingsCache(leagueId, timeline) {
   const cache = new Map();
-  const at = (i) => (i >= steps.length ? null : i === 0 ? "1970-01-01T00:00:00Z" : steps[i - 1].at);
-  const get = async (i) => {
-    if (!cache.has(i)) cache.set(i, api.standings(league.id, at(i) ?? undefined));
-    return cache.get(i);
+  const timeAt = (position) => position >= timeline.length ? undefined
+    : position === 0 ? BEFORE_FIRST_GAME : timeline[position - 1].at;
+  return (position) => {
+    if (!cache.has(position)) cache.set(position, api.fetchStandings(leagueId, timeAt(position)));
+    return cache.get(position);
   };
+}
 
-  async function draw() {
-    const [now, prev] = await Promise.all([get(pos), get(Math.max(0, pos - 1))]);
-    const step = steps[pos - 1];
-    root.innerHTML = `
-      <div class="lb-head">
-        <div><h2>Leaderboard</h2>
-          <p class="muted">${leagues.length > 1 ? `<select id="ls">${leagues.map((l) => `<option value="${l.id}" ${l.id === league.id ? "selected" : ""}>${esc(l.name)}</option>`).join("")}</select>` : esc(league.name)}
-          · ${now.length} spillere · invitationskode <span class="code">${esc(league.invite_code)}</span></p></div>
-        ${steps.length ? `<div class="slider"><label for="after">Stilling efter: <span>${step ? `${esc(step.label)} · ${day(step.at)} ${time(step.at)}` : "før første kamp"}</span></label>
-          <input type="range" id="after" min="0" max="${steps.length}" value="${pos}">
-          <div class="leaders" id="leaders"></div></div>` : ""}
-      </div>
-      <div class="panel"><div class="tbl"><table>
-        <tr><th>#</th><th>Bruger</th><th class="r">Point</th><th class="r">Siden sidst</th><th class="r">Placering</th></tr>
-        ${now.map((x) => {
-          const p = prev.find((y) => y.user_id === x.user_id);
-          const d = p ? p.rank - x.rank : 0;
-          const gain = p ? (x.points - p.points).toFixed(1) : "0.0";
-          return `<tr class="${x.rank === 1 && x.points > 0 ? "lead" : ""}"><td class="rank">${x.rank}</td>
-            <td class="team">${esc(x.username)}${x.user_id === user.id ? ' <span class="muted small">(dig)</span>' : ""}</td>
-            <td class="r num">${x.points}</td><td class="r num">+${gain}</td>
-            <td class="r"><span class="delta ${d > 0 ? "up" : d < 0 ? "dn" : ""}">${d > 0 ? "▲ " + d : d < 0 ? "▼ " + -d : "–"}</span></td></tr>`;
-        }).join("")}
-      </table></div><p class="muted small">Andres hold kan ses, når en fase er låst. Point opdateres efter hver kamp.</p></div>
-      ${leagueForms()}`;
-    wireForms();
-    const ls = root.querySelector("#ls");
-    if (ls) ls.onchange = () => { selectedLeague = Number(ls.value); render(root, ctx); };
-    const sl = root.querySelector("#after");
-    if (sl) sl.onchange = () => { pos = Number(sl.value); draw(); };
-    drawLeaders();
-  }
+async function draw(root, context, state) {
+  const [standings, previousStandings] = await Promise.all([
+    state.standingsAt(state.position), state.standingsAt(Math.max(0, state.position - 1)),
+  ]);
+  root.innerHTML = headerHtml(state, standings.length) + standingsTableHtml(standings, previousStandings, context.user.id) + leagueFormsHtml();
+  bindLeagueForms(root, context);
+  bindControls(root, context, state);
+  drawLeaderHistory(root, state);
+}
 
-  // Hvem førte efter hver af de seneste 20 serier
-  async function drawLeaders() {
-    const el = root.querySelector("#leaders");
-    if (!el) return;
-    const from = Math.max(1, steps.length - 19);
-    const idx = Array.from({ length: steps.length - from + 1 }, (_, i) => from + i);
-    const res = await Promise.all(idx.map(get));
-    el.innerHTML = idx.map((i, k) => {
-      const lead = res[k][0];
-      return `<span class="${i === pos ? "cur" : ""}" title="${esc(steps[i - 1].label)}">${esc(steps[i - 1].label)}: ${lead && lead.points > 0 ? esc(lead.username) : "–"}</span>`;
-    }).join("");
-  }
+function headerHtml(state, playerCount) {
+  const { leagues, league, timeline, position } = state;
+  const leagueName = leagues.length > 1
+    ? `<select id="league-select">${leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select>`
+    : escapeHtml(league.name);
+  const step = timeline[position - 1];
+  const stepText = step ? `${escapeHtml(step.label)} · ${formatDay(step.at)} ${formatTime(step.at)}` : "før første kamp";
+  const slider = timeline.length ? `<div class="slider">
+      <label for="standings-after">Stilling efter: <span>${stepText}</span></label>
+      <input type="range" id="standings-after" min="0" max="${timeline.length}" value="${position}">
+      <div class="leaders" id="leader-history"></div></div>` : "";
+  return `<div class="lb-head"><div><h2>Leaderboard</h2>
+    <p class="muted">${leagueName} · ${playerCount} spillere · invitationskode <span class="code">${escapeHtml(league.invite_code)}</span></p></div>
+    ${slider}</div>`;
+}
 
-  await draw();
+function standingsTableHtml(standings, previousStandings, currentUserId) {
+  const rows = standings.map((entry) => {
+    const previous = previousStandings.find((item) => item.user_id === entry.user_id);
+    const rankChange = previous ? previous.rank - entry.rank : 0;
+    const gain = previous ? (entry.points - previous.points).toFixed(1) : "0.0";
+    const changeText = rankChange > 0 ? `▲ ${rankChange}` : rankChange < 0 ? `▼ ${-rankChange}` : "–";
+    const changeClass = rankChange > 0 ? "up" : rankChange < 0 ? "dn" : "";
+    const isLeader = entry.rank === 1 && entry.points > 0;
+    const youLabel = entry.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
+    return `<tr class="${isLeader ? "lead" : ""}"><td class="rank">${entry.rank}</td>
+      <td class="team">${escapeHtml(entry.username)}${youLabel}</td>
+      <td class="r num">${entry.points}</td><td class="r num">+${gain}</td>
+      <td class="r"><span class="delta ${changeClass}">${changeText}</span></td></tr>`;
+  }).join("");
+  return `<div class="panel"><div class="tbl"><table>
+    <tr><th>#</th><th>Bruger</th><th class="r">Point</th><th class="r">Siden sidst</th><th class="r">Placering</th></tr>${rows}
+    </table></div><p class="muted small">Andres hold kan ses, når en fase er låst. Point opdateres efter hver kamp.</p></div>`;
+}
+
+// Hvem førte efter hver af de seneste serier
+async function drawLeaderHistory(root, state) {
+  const container = root.querySelector("#leader-history");
+  if (!container) return;
+  const first = Math.max(1, state.timeline.length - LEADER_HISTORY_LENGTH + 1);
+  const positions = Array.from({ length: state.timeline.length - first + 1 }, (_, index) => first + index);
+  const allStandings = await Promise.all(positions.map(state.standingsAt));
+  container.innerHTML = positions.map((position, index) => {
+    const leader = allStandings[index][0];
+    const label = escapeHtml(state.timeline[position - 1].label);
+    const leaderName = leader && leader.points > 0 ? escapeHtml(leader.username) : "–";
+    return `<span class="${position === state.position ? "cur" : ""}" title="${label}">${label}: ${leaderName}</span>`;
+  }).join("");
+}
+
+function bindControls(root, context, state) {
+  const leagueSelect = root.querySelector("#league-select");
+  if (leagueSelect) leagueSelect.onchange = () => { selectedLeagueId = Number(leagueSelect.value); render(root, context); };
+  const slider = root.querySelector("#standings-after");
+  if (slider) slider.onchange = () => { state.position = Number(slider.value); draw(root, context, state); };
+}
+
+// ---------- Opret og join ligaer ----------
+function leagueFormsHtml(errorMessage = "") {
+  return `<div class="panel" id="league-forms"><h3>Ligaer</h3>
+    <div class="row">
+      <label for="invite-code">Invitationskode<input id="invite-code" maxlength="8" placeholder="fx 3fa9c21b"></label>
+      <button class="btn" id="join-league">Join liga</button>
+    </div>
+    <div class="row">
+      <label for="league-name">Ny liga<input id="league-name" maxlength="40" placeholder="Vennerne"></label>
+      <button class="btn ghost" id="create-league">Opret liga</button>
+    </div>
+    ${errorMessage ? errorBox(errorMessage) : ""}</div>`;
+}
+
+function bindLeagueForms(root, context) {
+  const showError = (message) => {
+    root.querySelector("#league-forms").outerHTML = leagueFormsHtml(message);
+    bindLeagueForms(root, context);
+  };
+  const openLeague = async (action) => {
+    try {
+      selectedLeagueId = (await action()).id;
+      render(root, context);
+    } catch (error) {
+      showError(error.message);
+    }
+  };
+  root.querySelector("#join-league").onclick = () => openLeague(() => api.joinLeague(root.querySelector("#invite-code").value));
+  root.querySelector("#create-league").onclick = () => {
+    const name = root.querySelector("#league-name").value.trim();
+    if (name) openLeague(() => api.createLeague(name));
+  };
 }

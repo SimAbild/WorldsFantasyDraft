@@ -64,6 +64,10 @@ Tekniske ord, der bruges i koden og i denne README.
 | **kill participation** (KP) | Andel af holdets kills, spilleren var med til (kills + assists). |
 | **CS/min** | Minions og monstre dræbt pr. minut. |
 | **domain** | Mappen med spillets regler som rene funktioner, adskilt fra siderne. |
+| **dialog** | Et vindue oven på siden. Bruges til at vise en anden brugers hold. Lukkes med Luk eller Escape. |
+| **WCAG** | Den internationale standard for tilgængelighed på nettet. Vi sigter efter niveau AA. |
+| **kontrast** | Forholdet mellem tekstens og baggrundens lysstyrke. WCAG kræver mindst 4,5:1 for almindelig tekst. |
+| **skærmlæser** | Program, der læser siden højt for blinde og svagtseende. Det bruger fx `aria-label`. |
 
 ---
 
@@ -73,8 +77,8 @@ Tekniske ord, der bruges i koden og i denne README.
 |---|---|
 | **Login** | Brugernavn og password. Ingen e-mail kræves. |
 | **Forside** | Worlds-status: kampprogram i dansk tid, stilling i den aktuelle fase, holdstats og de bedste spillere målt i fantasy-point. |
-| **Fantasy draft** | Faser i rækkefølge (Play-In → Swiss → Kvartfinale → Semifinale → Finale). Hold vist efter power ranking, spillere som FIFA-kort, træk-og-slip eller klik ind på roller. Pris og pointsystem forklaret på siden. Knappen **Lock in** gemmer. |
-| **Leaderboard** | Stilling i ligaen, ændring siden sidste kamp, og en tidslinje der viser, hvem der førte efter hver afsluttet serie. Opret eller join ligaer med en invitationskode. |
+| **Fantasy draft** | Faser i rækkefølge (Play-In → Swiss → Kvartfinale → Semifinale → Finale). Hold vist efter power ranking med en begrundelse for holdets prisklasse. Spillere som FIFA-kort med billede, træk-og-slip eller klik ind på roller. Forklaringen af point og priser er foldet sammen og valgfri at læse. Knappen **Lock in** gemmer. |
+| **Leaderboard** | Stilling for alle brugere, ændring siden sidste kamp, og en tidslinje der viser, hvem der førte efter hver afsluttet serie. Tryk på en bruger for at se vedkommendes hold og holdnavne (når fasen er låst). |
 | **Mine hold** | Point pr. hold og pr. spiller, med seriepoint efter hver kamp. |
 
 ---
@@ -131,13 +135,15 @@ js/
     draftRules.js               Draft-reglerne på klientsiden
   views/                        Én fil pr. side
     login.js · home.js · draft.js · leaderboard.js · mine.js
+    teamSummary.js              Et brugerhold med point – deles af Mine hold og leaderboardet
 tests/                          Unit tests af domain/ (npm test)
 supabase/
   functions/ingest/index.ts     Henter kampe og stats fra lolesports
   migrations/                   Databaseskemaet med samme numre som i Supabase
-  seed/                         Opslagsdata, faser og kalibrering
+  seed/                         Opslagsdata, faser, kalibrering og Play-In 2026
 analyse/                        Pointmodel, kalibrering og simulering i Python
 docs/ui-skitser.html            De godkendte UI-skitser
+docs/ux-gennemgang.md           UX- og tilgængelighedsgennemgang
 IMPROVEMENTS.md                 Refaktoreringer med før, efter og hvorfor
 ```
 
@@ -158,7 +164,7 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Play-In tæller med** | Giver spil fra første kampdag. | Play-In som ren test uden point. |
 | **Finalen er fri leg** | Kun to hold er tilbage, så budget og holdgrænse giver ingen mening. Alle må vælge alle. | Budget i finalen. |
 | **Alle brugere kan vælge samme spiller** | Det er brugerens samlede viden, der skal afgøre spillet, ikke hvem der drafter først. | Eksklusiv snake-draft. |
-| **Ét hold pr. fase, som gælder i alle ligaer** | Man drafter kun én gang. En liga er bare en gruppe af brugere. | Ét hold pr. liga. |
+| **Ingen ligaer – alle er på samme leaderboard** | Spillet deles kun med en vennegruppe, så ligaer og invitationskoder var unødig kompleksitet. | Ligaer med invitationskode (bygget i første version og fjernet igen). |
 
 ### Regler for holdet
 
@@ -180,6 +186,8 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Swiss: 4 prisklasser** – Favorit 26 · Stærk 22 · Middel 18 · Underdog 14 | Sat ud fra region og regional placering. Spredningen gør underdogs attraktive. | Faste priser for alle. |
 | **Knockout: 2 prisklasser** – Favorit 23 · Underdog 17 | Sat ud fra Swiss-resultatet. Det lille spænd betyder, at valget handler om, hvem man tror spiller godt. | 26/14 (for stort spænd i små faser). |
 | **Play-In: 26 / 22 / 18 / 14** (KC, C9, FUR, MVK) | Samme skala som Swiss. Budgettet tvinger mindst ét underdog-valg. | – |
+| **Hver prisklasse har en skrevet begrundelse** | Brugeren skal kunne se, hvorfor et hold er Stærk og et andet Underdog. Begrundelsen står ved holdet i draften og ligger i `team_price.reason`. | Kun et tal uden forklaring. |
+| **Prisklassen sættes ud fra** regionens internationale resultater og holdets seed (Play-In og Swiss) eller Swiss-resultatet (knockout) | Kriterierne er kendte for alle og kan tjekkes. | Egen vurdering af formen. |
 | **Prismodellen blev beholdt efter simulering** | Simuleringen på Worlds 2024 og 2025 viste, at viden belønnes stærkt uden prisjusteringer. | Dynamiske priser, der stiger og falder. |
 
 ### Fravalgte mekanikker
@@ -190,7 +198,7 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Coach** | Coachens indsats kan ikke måles med de data, der findes. |
 | **Loyalitetsbonus** | Simuleringen viste, at den kun flyttede 2–3 % af pointene. Den gav kompleksitet uden effekt. |
 | **Transfers mellem kampe** | Erstattet af en ny draft i hver fase. |
-| **Stats på spillerkortet** | Kortet viser kun navn, rolle og pris, så valget bygger på brugerens egen viden. |
+| **Stats på spillerkortet** | Kortet viser kun billede, navn, rolle og pris, så valget bygger på brugerens egen viden. |
 
 ---
 
@@ -237,7 +245,13 @@ Kampscore = 20 + 10 · z_rolle( 0,5 · z(Del A) + 0,5 · z(Del B) ) + MVP/ACE
 | **Spillerkort i FIFA-stil** | Kortets kant viser prisklassen: guld er favorit, sølv stærk, bronze middel og grå underdog. |
 | **Hold sorteret efter lolesports' power ranking** | Den rækkefølge kender brugerne i forvejen. |
 | **Træk og slip, plus klik som alternativ** | Klik og tastatur (Enter) gør draften brugbar uden mus. Shift+klik sender kortet til Swiss-hold B. |
-| **Forklaring af point og priser på draft-siden** | Brugeren skal forstå reglerne i det øjeblik, valget træffes. |
+| **Forklaring af point og priser på draft-siden, men valgfri** | Forklaringen er foldet sammen fra start og forbliver, som brugeren efterlod den, også når kort trækkes. Ingen skal tvinges til at læse regler for at spille. |
+| **Begrundelse for prisklassen ved hvert hold** | Svarer på "hvorfor er de Underdog?" lige dér, hvor valget træffes. |
+| **Billeder af alle spillere** | Man genkender spillere på ansigtet hurtigere end på navnet. Mangler et billede, vises initialer. |
+| **"Valgt"-mærkat på kort, der er på holdet** | Et dæmpet kort uden forklaring ligner en fejl. Mærkaten siger, hvorfor kortet ikke kan vælges igen. |
+| **Fjern-knap på hver spiller** | Det skal være lige så nemt at fortryde som at vælge. |
+| **"Ikke gemt endnu" og advarsel før man forlader siden** | Brugeren må ikke tro, at holdet er gemt, før Lock in er trykket. |
+| **Andres hold i en dialog fra leaderboardet** | Man bliver på leaderboardet og kan hurtigt se flere venners hold efter hinanden. Samme visning som Mine hold. |
 | **Regler tjekkes live** | Budget, holdgrænse og manglende roller vises, mens man bygger, og knappen er låst, indtil holdet er gyldigt. |
 | **Alle tider i dansk tid** | Worlds 2026 spilles i Nordamerika. Tiderne gemmes i UTC og vises i Europe/Copenhagen, så sommertidsskiftet den 25. oktober håndteres korrekt. |
 | **Leaderboard med tidslinje** | Viser, hvem der førte efter hver serie. Det giver historie og spænding, ikke kun en slutstilling. |
@@ -245,6 +259,10 @@ Kampscore = 20 + 10 · z_rolle( 0,5 · z(Del A) + 0,5 · z(Del B) ) + MVP/ACE
 | **Farver** | Næsten sort baggrund, cyan som accent, guld for førstepladsen og grøn/rød kun for status (sejr/tab, gyldig/ugyldig). |
 
 De godkendte skitser ligger i [`docs/ui-skitser.html`](docs/ui-skitser.html).
+
+### UX-gennemgang
+
+Siden er gennemgået efter Nielsens 10 usability-heuristikker og WCAG 2.1 AA. Fund, rettelser og kontrastmålinger står i [`docs/ux-gennemgang.md`](docs/ux-gennemgang.md).
 
 ---
 
@@ -270,9 +288,9 @@ De godkendte skitser ligger i [`docs/ui-skitser.html`](docs/ui-skitser.html).
 | Opslag | `role`, `dragon_type`, `price_tier`, `metric` |
 | Kalibrering | `calibration`, `calibration_role`, `calibration_metric` |
 | Turnering | `tournament`, `phase`, `pro_team`, `player`, `tournament_team`, `roster`, `team_price`, `series`, `series_team`, `game`, `game_team`, `game_dragon`, `game_player` |
-| Brugere | `profile`, `league`, `league_member`, `fantasy_team`, `fantasy_pick` |
+| Brugere | `profile`, `fantasy_team`, `fantasy_pick` (ligatabellerne fra første version fjernes i migration 013) |
 
-**Views:** `v_game_player` → `v_game_score` → `v_series_points` → `v_phase_points` → `v_fantasy_pick_points` → `v_fantasy_team`, samt `v_player_card`, `v_series`, `v_team_stats` og `v_player_stats`. Funktionen `league_standings(liga, tidspunkt)` giver stillingen på et vilkårligt tidspunkt.
+**Views:** `v_game_player` → `v_game_score` → `v_series_points` → `v_phase_points` → `v_fantasy_pick_points` → `v_fantasy_team`, samt `v_player_card`, `v_series`, `v_team_stats` og `v_player_stats`. Funktionen `standings(tidspunkt)` giver stillingen for alle brugere på et vilkårligt tidspunkt.
 
 ### Sikkerhed
 
@@ -280,7 +298,6 @@ De godkendte skitser ligger i [`docs/ui-skitser.html`](docs/ui-skitser.html).
 |---|---|
 | **Draften gemmes kun via RPC'en `submit_draft`** | Alle regler (frist, budget, roller, holdgrænse, startspillere, unikke spillere) tjekkes i én transaktion i databasen. Browseren kan ikke snyde. |
 | **RLS på alle tabeller** | Turneringsdata kan læses af alle. Kun `ingest` kan skrive. Andres hold vises først efter fristen. |
-| **Ligaer kun for medlemmer** | Man ser kun ligaer, man er med i. Man joiner med en invitationskode. |
 | **Offentlig Supabase-nøgle i frontend** | Det er sikkert, fordi RLS styrer, hvad nøglen giver adgang til. |
 | **Brugernavn i stedet for e-mail** | Simpelt for vennerne. Supabase kræver en e-mail, så brugernavnet bliver til `brugernavn@users.worldsfantasy.app`. |
 
@@ -293,6 +310,7 @@ De godkendte skitser ligger i [`docs/ui-skitser.html`](docs/ui-skitser.html).
 | **Kører hvert 5. minut via `pg_cron`** | Ingen ekstern server. Point opdateres kort efter hver kamp. |
 | **Vinderen sættes ud fra seriens stilling (gameWins)** | Mere sikkert end at gætte ud fra tårne og guld. Tårne og inhibitors bruges kun som nødløsning, hvis flere kampe er åbne på én gang. |
 | **Ukendte spillere oprettes som reserver** | En stand-in får sine kampe registreret, men kan ikke vælges i draften. |
+| **Spillerbilleder hentes fra lolesports' holdliste** | Kun når en startspiller mangler et billede, så det koster næsten intet. Billedet gemmes i `player.image_url`. |
 | **Stopper efter 100 sekunder** | Holder sig under Edge Functions' tidsgrænse. Næste kørsel tager resten. |
 
 ### Frontend
@@ -340,7 +358,8 @@ Koden følger samme principper som [ProgExam](https://github.com/SimAbild/ProgEx
 | **Simulering på Worlds 2024 og 2025** | Brugere med viden om spillet slår tilfældige og naive strategier tydeligt. Prismodellen fungerer uden justeringer. |
 | **Sejr mod præstation** | Blandingen af Del A og Del B plus MVP/ACE giver den ønskede risk/reward. Stærke spillere på tabende hold kan score højt. |
 | **Databasens point mod Python-modellen** | To kampe fra Worlds 2025 giver præcis de samme point, også MVP og ACE. |
-| **Ende-til-ende i browseren** | Login, draft med Lock in, liga, leaderboard og Mine hold er testet mod den rigtige database. |
+| **Ende-til-ende i browseren** | Login, draft med Lock in, leaderboard med andres hold og Mine hold er testet mod den rigtige database. |
+| **Tastatur og zoom** | Hele flowet kan klares med tastaturet. Ingen vandret scroll ved 200 % zoom. Se [`docs/ux-gennemgang.md`](docs/ux-gennemgang.md). |
 
 ---
 
@@ -350,7 +369,7 @@ Opgaver, der skal laves i hånden:
 
 | Hvornår | Opgave |
 |---|---|
-| Før hver draft | Sæt prisklasse pr. hold i `team_price` og power ranking i `tournament_team.power_rank`. |
+| Før hver draft | Sæt prisklasse og begrundelse pr. hold i `team_price` (`tier_code`, `reason`) og power ranking i `tournament_team.power_rank`. Play-In ligger i `supabase/seed/03_play_in_2026.sql` som eksempel. |
 | Når holdene er kendt | Markér startspillere i `roster.is_starter`. |
 | Når en bruger glemmer sit password | Nulstil det i Supabase-dashboardet under Authentication. |
 | Kun én gang | Slå "Confirm email" fra i Supabase under Authentication → Sign In / Providers → Email. |
@@ -362,6 +381,8 @@ Opgaver, der skal laves i hånden:
 - **Pauser:** pauser trækkes ikke fra kampens længde endnu, så CS pr. minut bliver en smule for lav i kampe med lange pauser.
 - **Glemt password:** brugeren kan ikke selv nulstille det, fordi der ikke er en rigtig e-mail.
 - **Faseslut:** tidspunkterne for semifinale og finale er sat ud fra planen og skal justeres, når Riot offentliggør de præcise tider.
+- **Skærmlæser:** siden har labels og roller til skærmlæsere, men er ikke testet med en rigtig skærmlæser (NVDA eller VoiceOver).
+- **Træk og slip kræver mus:** med tastaturet bruges Enter på kortet i stedet. Det sætter altid kortet på dets egen rolle.
 - **Pointene er altid live:** en sen rettelse fra Riot kan flytte en afsluttet stilling.
 
 ---

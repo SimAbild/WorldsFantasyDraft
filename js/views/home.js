@@ -1,6 +1,6 @@
 // Ansvar: Forsiden – Worlds-status med kampprogram, stilling, holdstats og bedste spillere
 import * as api from "../api.js";
-import { escapeHtml, formatDay, formatTime, PHASE_NAME, ROLE_NAME, emptyBox } from "../ui.js";
+import { escapeHtml, formatDay, formatTime, PHASE_NAME, ROLE_NAME, emptyBox, avatar } from "../ui.js";
 import { currentPhase } from "../domain/phase.js";
 import { groupSeriesRows, phaseRecords, recentAndUpcomingSeries, isSeriesWinner } from "../domain/series.js";
 
@@ -85,7 +85,7 @@ function teamStatsHtml(teamStats) {
 function topPlayersHtml(players) {
   const body = players.length
     ? `<div class="table-scroll"><table><tr><th>Spiller</th><th>Hold</th><th>Rolle</th><th class="right">Kampe</th><th class="right">KDA</th><th class="right">MVP/ACE</th><th class="right">Point/kamp</th></tr>${players.map((player) =>
-        `<tr><td class="team">${escapeHtml(player.handle)}</td><td>${escapeHtml(player.team_code)}</td><td class="muted">${ROLE_NAME[player.role_code]}</td><td class="right number">${player.games}</td><td class="right number">${player.kills}/${player.deaths}/${player.assists}</td><td class="right number">${player.titles}</td><td class="right number">${player.avg_score}</td></tr>`).join("")}</table></div>`
+        `<tr><td class="team"><span class="player-identity">${avatar(player.handle, player.image_url)}${escapeHtml(player.handle)}</span></td><td>${escapeHtml(player.team_code)}</td><td class="muted">${ROLE_NAME[player.role_code]}</td><td class="right number">${player.games}</td><td class="right number">${player.kills}/${player.deaths}/${player.assists}</td><td class="right number">${player.titles}</td><td class="right number">${player.avg_score}</td></tr>`).join("")}</table></div>`
     : emptyBox("Point kommer efter første kamp.");
   return `<div class="panel"><h3>Bedste spillere (fantasy-point pr. kamp)</h3>${body}</div>`;
 }

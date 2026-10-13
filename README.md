@@ -21,6 +21,7 @@ Et fantasy-spil til **League of Legends Worlds 2026**, som en vennegruppe (6–8
 13. [Kendte begrænsninger](#kendte-begrænsninger)
 14. [Tidsplan for Worlds 2026](#tidsplan-for-worlds-2026)
 15. [Kør lokalt](#kør-lokalt)
+16. [Git-workflow](#git-workflow)
 
 ---
 
@@ -335,3 +336,27 @@ python3 -m http.server 8000
 Åbn http://localhost:8000. Appen taler direkte med Supabase-projektet.
 
 Databaseskemaet i `supabase/migrations` er en kopi. Den autoritative udgave er migrationshistorikken i Supabase-projektet.
+
+---
+
+## Git-workflow
+
+| Branch | Formål | Deploy |
+|---|---|---|
+| `main` | Produktion. Det vennerne bruger. | GitHub Pages bygger automatisk fra `main`. |
+| `dev` | Udvikling og test. Alt nyt laves her først. | Ingen. Testes lokalt. |
+
+**Sådan laves en ændring:**
+
+1. Arbejd på `dev`, eller lav en feature-branch ud fra `dev` (fx `feature/swiss-priser`), og merge den ind i `dev`.
+2. Test lokalt med `python3 -m http.server 8000`.
+3. Opret en pull request fra `dev` til `main`.
+4. Merge pull requesten. Så går ændringen i produktion.
+
+**Regler:**
+
+- Der committes aldrig direkte på `main`.
+- Commit-beskeder skrives på dansk og beskriver, hvad der ændres og hvorfor.
+- Databaseændringer laves som en ny migration og kopieres til `supabase/migrations/` i samme pull request.
+
+**Bemærk:** der er kun ét Supabase-projekt, så `dev` og `main` bruger den samme database. Databaseændringer skal derfor være bagudkompatible, indtil frontenden på `main` er opdateret.

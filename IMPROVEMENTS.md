@@ -270,3 +270,64 @@ Draft-reglerne findes to steder: `draftRules.js` (klient) og `assert_draft_valid
 - **Databasen** håndhæver reglerne og kan ikke omgås fra browseren.
 
 Ændres en regel, skal begge steder opdateres. Testene i `tests/draftRules.test.js` og migrationen 010 beskriver de samme regler.
+
+---
+
+## 11. Navne, der kan læses uden forkundskaber
+
+**Filer:** alle filer i `js/` og `css/app.css`, `supabase/functions/ingest/index.ts`, `README.md`
+
+**Hvad blev ændret:**
+Navne med branchejargon eller forkortelser er skiftet til navne, der siger, hvad de gør. CSS-klasserne har fået hele ord. README'en har fået en ordliste over de tekniske ord, der ikke kan undgås (fx cron, view, RPC og upsert).
+
+| Før | Efter | Hvad det er |
+|---|---|---|
+| `heroHtml` | `pageTitleHtml` | Sidens overskrift med fase og næste kamp |
+| `unwrap` | `dataOrThrow` | Giver data fra Supabase eller kaster fejlen |
+| `slotLabel` | `teamLetter` | A eller B for Swiss-holdene |
+| `tierOf`, `rim` | `priceTierOf`, `borderColor` | Prisklassens navn og kortets kantfarve |
+| `scheduleWindow` | `recentAndUpcomingSeries` | De seneste og næste kampe |
+| `seriesTimeline` | `finishedSeriesInOrder` | Afsluttede serier i tidsorden |
+| `createStandingsCache` | `createStandingsLoader` | Henter stillingen på et tidspunkt én gang |
+| `needsDetails` | `hasNewInformation` | Om der er nyt at hente for en serie |
+| `severity: "info"/"error"` | `isRuleBroken: false/true` | Om en regel er brudt eller noget bare mangler |
+| `.tchip`, `.tn`, `.tp`, `.pr` | `.team-chip`, `.team-code`, `.team-price`, `.team-rank` | Holdknapperne på draft-siden |
+| `.st`, `.row2.l`, `.rec.q/.o` | `.phase-status`, `.match-team.loser`, `.record.qualified/.eliminated` | Status og resultater |
+| `.pbar`, `.lb-head`, `.tbl`, `.r`, `.num` | `.player-points`, `.page-header`, `.table-scroll`, `.right`, `.number` | Layout og tal |
+
+**Hvorfor:**
+Clean code: koden skal kunne læses af en, der ikke var med til at skrive den.
+
+---
+
+## 12. Python-analysen som clean code
+
+**Filer:** `analyse/pointmodel.py` (ny), `analyse/calibration.py` (ny, erstatter `calib.py`), `analyse/simulation.py`, `analyse/fetch_games.py`
+
+**Hvad blev ændret:**
+- **DRY:** `calib.py` var en kopi af de første 98 linjer af `simulation.py`. Pointmodellen ligger nu ét sted i `pointmodel.py`, og både kalibrering og simulering importerer den.
+- **Små funktioner med ét ansvar:** fx `load_player_games`, `part_a_raw`, `add_game_scores`, `best_team` og `draft_with_knowledge`.
+- **Fulde navne:** `df`, `r`, `k`, `d`, `a`, `ks`, `wp`, `st`, `lu`, `facit` og `sc` er blevet til fx `player_games`, `row`, `kills`, `deaths`, `assists`, `kill_share`, `wards_placed`, `phase`, `lineup`, `best_team` og `rating`.
+- **Navngivne regler:** `AVERAGE_GAME_SCORE = 20`, `PART_A_FLOOR = -5`, `BEST_ON_TEAM_BONUS = 3` og lignende i stedet for tal midt i koden.
+- **Turneringens data samlet:** en `Tournament`-dataclass i stedet for løse globale variabler.
+- **Den gamle simulering skrev data til visualiseringssiden:** den del er fjernet. Scriptet skriver nu kun resultaterne: strategier, vidensniveauer og ligasejre.
+- **Knockout-priserne er de besluttede 23/17.** Den gamle simulering brugte 26/14.
+
+**Hvorfor:**
+Den samme standard skal gælde for al kode i repoet, også den der kun bruges til analyse.
+
+**Kontrol:** `calibration.py` giver præcis de samme konstanter som dem i databasen (største afvigelse 4 · 10⁻¹⁶).
+
+**Før:**
+```python
+df["rawA"] = [sum(parts_A(r).values()) for _, r in df.iterrows()]
+multA = 20 / df.groupby("role").rawA.mean()
+df["A"] = np.maximum(-5, df.rawA * df.role.map(multA))
+```
+
+**Efter:**
+```python
+scored["part_a_raw"] = [part_a_raw(row, averages) for _, row in scored.iterrows()]
+role_multiplier = AVERAGE_GAME_SCORE / scored.groupby("role").part_a_raw.mean()
+part_a = np.maximum(PART_A_FLOOR, scored.part_a_raw * scored.role.map(role_multiplier))
+```

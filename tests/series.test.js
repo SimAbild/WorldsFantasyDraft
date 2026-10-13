@@ -1,7 +1,7 @@
 // Ansvar: Tester sammensætning af serier, stilling og tidslinje
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { groupSeriesRows, phaseRecords, seriesTimeline, scheduleWindow } from "../js/domain/series.js";
+import { groupSeriesRows, phaseRecords, finishedSeriesInOrder, recentAndUpcomingSeries } from "../js/domain/series.js";
 
 const row = (series_id, team_code, game_wins, best_of = 3, last_game_ended_at = null) => ({
   series_id, phase_id: 1, best_of, starts_at: `2026-10-2${series_id}T17:00:00Z`, last_game_ended_at,
@@ -42,12 +42,12 @@ test("tidslinjen har kun afsluttede serier i tidsorden", () => {
     row(2, "FUR", 1, 1, "2026-10-15T19:00:00Z"), row(2, "MVK", 0, 1, "2026-10-15T19:00:00Z"),
     row(3, "G2", 0, 1), row(3, "T1", 0, 1),
   ]);
-  assert.deepEqual(seriesTimeline(all).map((step) => step.label), ["FUR–MVK", "KC–C9"]);
+  assert.deepEqual(finishedSeriesInOrder(all).map((step) => step.label), ["FUR–MVK", "KC–C9"]);
 });
 
 test("kampprogrammet viser kampe omkring den første uafgjorte", () => {
   const list = Array.from({ length: 20 }, (_, index) => ({ isDecided: index < 10 }));
-  const window = scheduleWindow(list, 4, 8);
+  const window = recentAndUpcomingSeries(list, 4, 8);
   assert.equal(window.length, 12);
   assert.equal(list.indexOf(window[0]), 6);
 });

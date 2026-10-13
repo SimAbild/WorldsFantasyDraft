@@ -55,7 +55,7 @@ test("manglende roller er info, ikke et regelbrud", () => {
   const teams = teamsFromSaved([], playInPhase);
   placePlayer(teams, byId(6), 1);
   const problems = draftProblems(teams, cardsById, playInPhase);
-  assert.deepEqual(problems, [{ severity: "info", text: "Mit hold: 4 roller mangler" }]);
+  assert.deepEqual(problems, [{ isRuleBroken: false, text: "Mit hold: 4 roller mangler" }]);
 });
 
 test("over budget og for mange fra samme hold er regelbrud", () => {

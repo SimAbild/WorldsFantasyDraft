@@ -14,7 +14,7 @@ const PHASE_BY_BLOCK: Record<string, string> = {
 const ROLE_BY_FEED_ROLE: Record<string, string> = { top: "top", jungle: "jungle", mid: "mid", bottom: "adc", support: "support" };
 const FINAL_FRAME_OFFSET_MINUTES = 90;   // sidste frame hentes 90 min efter kampstart (eller nu, hvis det er tidligere)
 const FEED_SAFETY_MARGIN_MS = 30_000;    // feedet har ikke data helt op til "nu"
-const FEED_TIME_STEP_MS = 10_000;        // feedet vil have tider rundet ned til 10 sekunder
+const FEED_TIME_ROUNDING_MS = 10_000;        // feedet vil have tider rundet ned til 10 sekunder
 const RUN_TIME_BUDGET_MS = 100_000;      // stop i god tid før Edge Functions' tidsgrænse
 const RED_SIDE_DRAGON_OFFSET = 50;       // drager nummereres pr. kamp: blå 1.., rød 51..
 
@@ -38,23 +38,23 @@ async function fetchFeed(path: string) {
 }
 
 function feedTimestamp(date: Date): string {
-  const rounded = Math.floor(date.getTime() / FEED_TIME_STEP_MS) * FEED_TIME_STEP_MS;
+  const rounded = Math.floor(date.getTime() / FEED_TIME_ROUNDING_MS) * FEED_TIME_ROUNDING_MS;
   return new Date(rounded).toISOString().replace(/\.\d{3}Z$/, ".000Z");
 }
 
 // Kaster databasens fejl videre med en beskrivelse af, hvad der blev forsøgt
-function unwrap<T>(result: { data: T | null; error: unknown }, action: string): T {
+function dataOrThrow<T>(result: { data: T | null; error: unknown }, action: string): T {
   if (result.error) throw new Error(`${action}: ${JSON.stringify(result.error)}`);
   return result.data as T;
 }
 
 // ---------- Hold og spillere ----------
 async function upsertProTeam(tournamentId: number, team: { id: string; code: string; name: string }) {
-  const row = unwrap(await database.from("pro_team").upsert(
+  const row = dataOrThrow(await database.from("pro_team").upsert(
     { esports_team_id: team.id, code: team.code, name: team.name }, { onConflict: "esports_team_id" },
   ).select("id").single(), "pro_team") as { id: number };
   // Holdet skal være med i turneringen; power rank sættes manuelt
-  unwrap(await database.from("tournament_team").upsert(
+  dataOrThrow(await database.from("tournament_team").upsert(
     { tournament_id: tournamentId, pro_team_id: row.id },
     { onConflict: "tournament_id,pro_team_id", ignoreDuplicates: true },
   ), "tournament_team");
@@ -64,16 +64,16 @@ async function upsertProTeam(tournamentId: number, team: { id: string; code: str
 // Ukendte spillere oprettes som reserver, så deres kampe kan regnes, men de kan ikke vælges i draften
 async function findOrCreatePlayer(tournamentId: number, proTeamId: number, metadata: { esportsPlayerId: string; summonerName: string; role: string }) {
   const handle = handleWithoutTeamCode(metadata.summonerName);
-  let player = unwrap(await database.from("player").select("id").eq("esports_player_id", metadata.esportsPlayerId)
+  let player = dataOrThrow(await database.from("player").select("id").eq("esports_player_id", metadata.esportsPlayerId)
     .maybeSingle(), "player opslag") as { id: number } | null;
   if (!player) {
-    player = unwrap(await database.from("player").insert({ esports_player_id: metadata.esportsPlayerId, handle })
+    player = dataOrThrow(await database.from("player").insert({ esports_player_id: metadata.esportsPlayerId, handle })
       .select("id").single(), "player") as { id: number };
   }
-  const rosterEntry = unwrap(await database.from("roster").select("player_id").eq("tournament_id", tournamentId)
+  const rosterEntry = dataOrThrow(await database.from("roster").select("player_id").eq("tournament_id", tournamentId)
     .eq("player_id", player.id).maybeSingle(), "roster opslag");
   if (!rosterEntry) {
-    unwrap(await database.from("roster").insert({
+    dataOrThrow(await database.from("roster").insert({
       tournament_id: tournamentId, player_id: player.id, pro_team_id: proTeamId,
       role_code: ROLE_BY_FEED_ROLE[metadata.role] ?? "mid", is_starter: false,
     }), "roster");
@@ -111,14 +111,14 @@ async function fetchScheduleEvents(year: number) {
 }
 
 async function upsertSeries(phaseId: number, event: any) {
-  return unwrap(await database.from("series").upsert({
+  return dataOrThrow(await database.from("series").upsert({
     phase_id: phaseId, esports_match_id: event.match.id,
     best_of: event.match.strategy?.count ?? 1, starts_at: event.startTime,
   }, { onConflict: "esports_match_id" }).select("id").single(), "series") as { id: number };
 }
 
 // Detaljer hentes kun, når der er noget nyt: hold mangler, kampe er i gang, eller stats/vinder mangler
-async function needsDetails(event: any, seriesId: number) {
+async function hasNewInformation(event: any, seriesId: number) {
   if (event.match.teams.some((team: any) => team.code === "TBD")) return false;
   if (event.state === "unstarted") {
     const { count } = await database.from("series_team").select("series_id", { count: "exact", head: true }).eq("series_id", seriesId);
@@ -137,7 +137,7 @@ async function syncSeriesTeams(tournamentId: number, seriesId: number, teams: an
   const winsByTeam: SeriesTeamWins = new Map();
   for (const team of teams) {
     const proTeamId = await upsertProTeam(tournamentId, team);
-    unwrap(await database.from("series_team").upsert({ series_id: seriesId, pro_team_id: proTeamId },
+    dataOrThrow(await database.from("series_team").upsert({ series_id: seriesId, pro_team_id: proTeamId },
       { onConflict: "series_id,pro_team_id", ignoreDuplicates: true }), "series_team");
     winsByTeam.set(proTeamId, team.result?.gameWins ?? 0);
   }
@@ -148,7 +148,7 @@ async function syncSeriesTeams(tournamentId: number, seriesId: number, teams: an
 async function syncGames(tournamentId: number, seriesId: number, games: any[]) {
   let statsAdded = 0;
   for (const game of games.filter((item) => item.state === "completed" || item.state === "inProgress")) {
-    const row = unwrap(await database.from("game").upsert({
+    const row = dataOrThrow(await database.from("game").upsert({
       series_id: seriesId, esports_game_id: game.id, game_number: game.number,
     }, { onConflict: "esports_game_id" }).select("id, state").single(), "game") as { id: number; state: string };
     if (row.state === "finished") continue;
@@ -188,7 +188,7 @@ async function saveFinalStats(tournamentId: number, gameRowId: number, esportsGa
       return false;
     }
   }
-  unwrap(await database.from("game").update({
+  dataOrThrow(await database.from("game").update({
     state: "finished", started_at: frames.startedAt.toISOString(), ended_at: new Date(frames.windowFrame.rfc460Timestamp).toISOString(),
   }).eq("id", gameRowId), "game slut");
   return true;
@@ -197,7 +197,7 @@ async function saveFinalStats(tournamentId: number, gameRowId: number, esportsGa
 async function saveTeamSide(tournamentId: number, gameRowId: number, side: "blue" | "red", teamMetadata: any, teamFrame: any, participants: Map<number, any>) {
   const { data: proTeam } = await database.from("pro_team").select("id").eq("esports_team_id", teamMetadata.esportsTeamId).single();
   if (!proTeam) return false;
-  unwrap(await database.from("game_team").upsert({
+  dataOrThrow(await database.from("game_team").upsert({
     game_id: gameRowId, pro_team_id: proTeam.id, side,
     barons: teamFrame.barons, towers: teamFrame.towers, inhibitors: teamFrame.inhibitors,
   }, { onConflict: "game_id,pro_team_id" }), "game_team");
@@ -215,12 +215,12 @@ async function saveDragons(gameRowId: number, proTeamId: number, side: "blue" | 
   const rows = dragonTypes.map((dragonType, index) => ({
     game_id: gameRowId, seq: offset + index + 1, pro_team_id: proTeamId, dragon_type: dragonType,
   }));
-  unwrap(await database.from("game_dragon").upsert(rows, { onConflict: "game_id,seq" }), "game_dragon");
+  dataOrThrow(await database.from("game_dragon").upsert(rows, { onConflict: "game_id,seq" }), "game_dragon");
 }
 
 async function savePlayerStats(tournamentId: number, gameRowId: number, proTeamId: number, playerMetadata: any, stats: any) {
   const playerId = await findOrCreatePlayer(tournamentId, proTeamId, playerMetadata);
-  unwrap(await database.from("game_player").upsert({
+  dataOrThrow(await database.from("game_player").upsert({
     game_id: gameRowId, player_id: playerId,
     kills: stats.kills, deaths: stats.deaths, assists: stats.assists, creep_score: stats.creepScore,
     damage_share: stats.championDamageShare, wards_placed: stats.wardsPlaced, wards_destroyed: stats.wardsDestroyed,
@@ -230,7 +230,7 @@ async function savePlayerStats(tournamentId: number, gameRowId: number, proTeamI
 // ---------- Vinder ----------
 // Vinderen udledes af seriens stilling (gameWins), ikke af tårne og guld
 async function assignWinners(seriesId: number, winsByTeam: SeriesTeamWins) {
-  const games = unwrap(await database.from("game").select("id, winner_team_id")
+  const games = dataOrThrow(await database.from("game").select("id, winner_team_id")
     .eq("series_id", seriesId).eq("state", "finished").order("game_number"), "games") as any[];
   const openGames = games.filter((game) => !game.winner_team_id);
   if (!openGames.length) return;
@@ -261,7 +261,7 @@ function missingWinsByTeam(games: any[], winsByTeam: SeriesTeamWins) {
 // men aldrig flere sejre til et hold end seriestillingen tillader
 async function assignByObjectives(openGames: any[], missingWins: Map<number, number>) {
   for (const game of openGames) {
-    const sides = unwrap(await database.from("game_team").select("pro_team_id, towers, inhibitors").eq("game_id", game.id), "sider") as any[];
+    const sides = dataOrThrow(await database.from("game_team").select("pro_team_id, towers, inhibitors").eq("game_id", game.id), "sider") as any[];
     sides.sort((a, b) => (b.inhibitors - a.inhibitors) || (b.towers - a.towers));
     const winner = sides.find((side) => (missingWins.get(side.pro_team_id) ?? 0) > 0);
     if (!winner) continue;
@@ -271,7 +271,7 @@ async function assignByObjectives(openGames: any[], missingWins: Map<number, num
 }
 
 async function setWinner(gameId: number, proTeamId: number) {
-  unwrap(await database.from("game").update({ winner_team_id: proTeamId }).eq("id", gameId), "vinder");
+  dataOrThrow(await database.from("game").update({ winner_team_id: proTeamId }).eq("id", gameId), "vinder");
 }
 
 // ---------- Hovedløb ----------
@@ -279,7 +279,7 @@ async function ingestEvent(tournamentId: number, phaseIdByKind: Map<string, numb
   const phaseKind = PHASE_BY_BLOCK[event.blockName];
   if (!phaseKind || !phaseIdByKind.has(phaseKind)) return 0;
   const series = await upsertSeries(phaseIdByKind.get(phaseKind)!, event);
-  if (!(await needsDetails(event, series.id))) return 0;
+  if (!(await hasNewInformation(event, series.id))) return 0;
   const details = (await fetchEsportsApi(`getEventDetails?hl=en-US&id=${event.match.id}`)).event.match;
   const winsByTeam = await syncSeriesTeams(tournamentId, series.id, details.teams);
   const statsAdded = await syncGames(tournamentId, series.id, details.games);
@@ -288,8 +288,8 @@ async function ingestEvent(tournamentId: number, phaseIdByKind: Map<string, numb
 }
 
 async function loadTournament(year: number) {
-  const tournament = unwrap(await database.from("tournament").select("id").eq("year", year).single(), "tournament") as { id: number };
-  const phases = unwrap(await database.from("phase").select("id, kind").eq("tournament_id", tournament.id), "phases") as any[];
+  const tournament = dataOrThrow(await database.from("tournament").select("id").eq("year", year).single(), "tournament") as { id: number };
+  const phases = dataOrThrow(await database.from("phase").select("id, kind").eq("tournament_id", tournament.id), "phases") as any[];
   return { tournamentId: tournament.id, phaseIdByKind: new Map(phases.map((phase) => [phase.kind, phase.id])) };
 }
 

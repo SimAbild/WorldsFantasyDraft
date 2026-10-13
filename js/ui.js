@@ -11,15 +11,15 @@ export const PHASE_STATE_NAME = {
 
 // Prisklasser: visningsnavn og kortets kantfarve samlet ét sted
 const TIERS = {
-  favorit: { label: "Favorit", rim: "favorit" },
-  staerk: { label: "Stærk", rim: "staerk" },
-  middel: { label: "Middel", rim: "middel" },
-  underdog: { label: "Underdog", rim: "underdog" },
-  ko_favorit: { label: "Favorit", rim: "favorit" },
-  ko_underdog: { label: "Underdog", rim: "underdog" },
+  favorit: { label: "Favorit", borderColor: "favorit" },
+  staerk: { label: "Stærk", borderColor: "staerk" },
+  middel: { label: "Middel", borderColor: "middel" },
+  underdog: { label: "Underdog", borderColor: "underdog" },
+  ko_favorit: { label: "Favorit", borderColor: "favorit" },
+  ko_underdog: { label: "Underdog", borderColor: "underdog" },
 };
-const FREE_TIER = { label: "Fri", rim: "fri" };
-export const tierOf = (tierCode) => TIERS[tierCode] ?? FREE_TIER;
+const FREE_TIER = { label: "Fri", borderColor: "fri" };
+export const priceTierOf = (tierCode) => TIERS[tierCode] ?? FREE_TIER;
 
 // Al tekst fra databasen escapes, før den sættes ind som HTML
 const HTML_ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -34,12 +34,12 @@ export const formatTime = (date) => timeFormat.format(new Date(date));
 export const formatDayTime = (date) => `${formatDay(date)} kl. ${formatTime(date)}`;
 
 export function playerCard(card, extraAttributes = "") {
-  const tier = tierOf(card.tier_code);
-  return `<div class="card" data-tier="${tier.rim}" data-id="${card.player_id}" tabindex="0" ${extraAttributes}>
+  const tier = priceTierOf(card.tier_code);
+  return `<div class="card" data-tier="${tier.borderColor}" data-id="${card.player_id}" tabindex="0" ${extraAttributes}>
     <div class="top-row"><div class="price">${escapeHtml(card.price ?? "–")}<small>${tier.label}</small></div><div class="role">${ROLE_NAME[card.role_code]}</div></div>
     <div class="face"><span>${escapeHtml(card.handle.slice(0, 2).toUpperCase())}</span></div>
     <div class="name" title="${escapeHtml(card.handle)}">${escapeHtml(card.handle)}</div>
-    <div class="tm">${escapeHtml(card.team_code)}</div>
+    <div class="card-team">${escapeHtml(card.team_code)}</div>
   </div>`;
 }
 

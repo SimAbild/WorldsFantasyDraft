@@ -5,7 +5,7 @@ import { SUPABASE_URL, SUPABASE_KEY, EMAIL_DOMAIN } from "./config.js";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Kaster databasens (danske) fejlbesked videre, så visningen kan vise den direkte
-function unwrap({ data, error }) {
+function dataOrThrow({ data, error }) {
   if (error) throw new Error(error.message);
   return data;
 }
@@ -14,12 +14,12 @@ function unwrap({ data, error }) {
 const usernameToEmail = (username) => `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
 
 export async function signIn(username, password) {
-  unwrap(await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password }));
+  dataOrThrow(await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password }));
 }
 
 export async function signUp(username, password) {
   const normalizedUsername = username.trim().toLowerCase();
-  const result = unwrap(await supabase.auth.signUp({
+  const result = dataOrThrow(await supabase.auth.signUp({
     email: usernameToEmail(normalizedUsername), password, options: { data: { username: normalizedUsername } },
   }));
   if (!result.session) throw new Error("Brugeren er oprettet, men e-mailbekræftelse er slået til i Supabase. Bed Simon slå den fra.");
@@ -33,73 +33,73 @@ export async function fetchCurrentUser() {
 }
 
 export async function fetchProfile(userId) {
-  return unwrap(await supabase.from("profile").select("username").eq("user_id", userId).single());
+  return dataOrThrow(await supabase.from("profile").select("username").eq("user_id", userId).single());
 }
 
 // ---------- Turnering ----------
 export async function fetchCurrentTournament() {
-  return unwrap(await supabase.from("tournament").select("id, year").eq("year", new Date().getFullYear()).single());
+  return dataOrThrow(await supabase.from("tournament").select("id, year").eq("year", new Date().getFullYear()).single());
 }
 
 export async function fetchPhases(tournamentId) {
-  return unwrap(await supabase.from("phase").select("*").eq("tournament_id", tournamentId).order("opens_at"));
+  return dataOrThrow(await supabase.from("phase").select("*").eq("tournament_id", tournamentId).order("opens_at"));
 }
 
 export async function fetchSeriesRows(phaseIds) {
-  return unwrap(await supabase.from("v_series").select("*").in("phase_id", phaseIds).order("starts_at"));
+  return dataOrThrow(await supabase.from("v_series").select("*").in("phase_id", phaseIds).order("starts_at"));
 }
 
 export async function fetchTeamStats(tournamentId) {
-  return unwrap(await supabase.from("v_team_stats").select("*").eq("tournament_id", tournamentId)
+  return dataOrThrow(await supabase.from("v_team_stats").select("*").eq("tournament_id", tournamentId)
     .order("wins", { ascending: false }));
 }
 
 export async function fetchTopPlayers(tournamentId, limit = 10) {
-  return unwrap(await supabase.from("v_player_stats").select("*").eq("tournament_id", tournamentId)
+  return dataOrThrow(await supabase.from("v_player_stats").select("*").eq("tournament_id", tournamentId)
     .order("avg_score", { ascending: false }).limit(limit));
 }
 
 // ---------- Draft ----------
 export async function fetchPlayerCards(phaseId) {
-  return unwrap(await supabase.from("v_player_card").select("*").eq("phase_id", phaseId));
+  return dataOrThrow(await supabase.from("v_player_card").select("*").eq("phase_id", phaseId));
 }
 
 export async function fetchMyTeams(phaseId, userId) {
-  return unwrap(await supabase.from("fantasy_team").select("id, slot, name, fantasy_pick(role_code, player_id)")
+  return dataOrThrow(await supabase.from("fantasy_team").select("id, slot, name, fantasy_pick(role_code, player_id)")
     .eq("phase_id", phaseId).eq("user_id", userId).order("slot"));
 }
 
 export async function submitDraft(phaseId, teams) {
-  unwrap(await supabase.rpc("submit_draft", { p_phase_id: phaseId, p_teams: teams }));
+  dataOrThrow(await supabase.rpc("submit_draft", { p_phase_id: phaseId, p_teams: teams }));
 }
 
 // ---------- Ligaer og leaderboard ----------
 export async function fetchMyLeagues() {
-  return unwrap(await supabase.from("league").select("id, name, invite_code, owner_id").order("id"));
+  return dataOrThrow(await supabase.from("league").select("id, name, invite_code, owner_id").order("id"));
 }
 
 export async function createLeague(name) {
-  return unwrap(await supabase.rpc("create_league", { p_name: name }));
+  return dataOrThrow(await supabase.rpc("create_league", { p_name: name }));
 }
 
 export async function joinLeague(inviteCode) {
-  return unwrap(await supabase.rpc("join_league", { p_invite_code: inviteCode }));
+  return dataOrThrow(await supabase.rpc("join_league", { p_invite_code: inviteCode }));
 }
 
 // Uden tidspunkt gives stillingen lige nu
 export async function fetchStandings(leagueId, at) {
   const parameters = { p_league_id: leagueId };
   if (at) parameters.p_at = at;
-  return unwrap(await supabase.rpc("league_standings", parameters));
+  return dataOrThrow(await supabase.rpc("league_standings", parameters));
 }
 
 // ---------- Mine hold ----------
 export async function fetchMyPickPoints(userId) {
-  return unwrap(await supabase.from("v_fantasy_pick_points").select("*").eq("user_id", userId));
+  return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("*").eq("user_id", userId));
 }
 
 export async function fetchSeriesPoints(phaseId, playerIds) {
   if (!playerIds.length) return [];
-  return unwrap(await supabase.from("v_series_points").select("series_id, player_id, series_points, games, ended_at")
+  return dataOrThrow(await supabase.from("v_series_points").select("series_id, player_id, series_points, games, ended_at")
     .eq("phase_id", phaseId).in("player_id", playerIds).order("ended_at"));
 }

@@ -1,7 +1,7 @@
 // Ansvar: Leaderboard-siden – stilling i ligaen, tidslinje over hvem der førte, og oprettelse af ligaer
 import * as api from "../api.js";
 import { escapeHtml, formatDay, formatTime, errorBox } from "../ui.js";
-import { groupSeriesRows, seriesTimeline } from "../domain/series.js";
+import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
 
 const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
@@ -18,14 +18,14 @@ export async function render(root, context) {
   if (!leagues.some((league) => league.id === selectedLeagueId)) selectedLeagueId = leagues[0].id;
   const league = leagues.find((item) => item.id === selectedLeagueId);
   const seriesRows = await api.fetchSeriesRows(context.phases.map((phase) => phase.id));
-  const timeline = seriesTimeline(groupSeriesRows(seriesRows));
-  const standingsAt = createStandingsCache(league.id, timeline);
-  const state = { leagues, league, timeline, position: timeline.length, standingsAt };
+  const timeline = finishedSeriesInOrder(groupSeriesRows(seriesRows));
+  const loadStandingsAt = createStandingsLoader(league.id, timeline);
+  const state = { leagues, league, timeline, position: timeline.length, loadStandingsAt };
   await draw(root, context, state);
 }
 
 // Position 0 = før første kamp, position timeline.length = nu. Hver stilling hentes kun én gang.
-function createStandingsCache(leagueId, timeline) {
+function createStandingsLoader(leagueId, timeline) {
   const cache = new Map();
   const timeAt = (position) => position >= timeline.length ? undefined
     : position === 0 ? BEFORE_FIRST_GAME : timeline[position - 1].at;
@@ -37,7 +37,7 @@ function createStandingsCache(leagueId, timeline) {
 
 async function draw(root, context, state) {
   const [standings, previousStandings] = await Promise.all([
-    state.standingsAt(state.position), state.standingsAt(Math.max(0, state.position - 1)),
+    state.loadStandingsAt(state.position), state.loadStandingsAt(Math.max(0, state.position - 1)),
   ]);
   root.innerHTML = headerHtml(state, standings.length) + standingsTableHtml(standings, previousStandings, context.user.id) + leagueFormsHtml();
   bindLeagueForms(root, context);
@@ -56,7 +56,7 @@ function headerHtml(state, playerCount) {
       <label for="standings-after">Stilling efter: <span>${stepText}</span></label>
       <input type="range" id="standings-after" min="0" max="${timeline.length}" value="${position}">
       <div class="leaders" id="leader-history"></div></div>` : "";
-  return `<div class="lb-head"><div><h2>Leaderboard</h2>
+  return `<div class="page-header"><div><h2>Leaderboard</h2>
     <p class="muted">${leagueName} · ${playerCount} spillere · invitationskode <span class="code">${escapeHtml(league.invite_code)}</span></p></div>
     ${slider}</div>`;
 }
@@ -67,16 +67,16 @@ function standingsTableHtml(standings, previousStandings, currentUserId) {
     const rankChange = previous ? previous.rank - entry.rank : 0;
     const gain = previous ? (entry.points - previous.points).toFixed(1) : "0.0";
     const changeText = rankChange > 0 ? `▲ ${rankChange}` : rankChange < 0 ? `▼ ${-rankChange}` : "–";
-    const changeClass = rankChange > 0 ? "up" : rankChange < 0 ? "dn" : "";
+    const changeClass = rankChange > 0 ? "up" : rankChange < 0 ? "down" : "";
     const isLeader = entry.rank === 1 && entry.points > 0;
     const youLabel = entry.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
-    return `<tr class="${isLeader ? "lead" : ""}"><td class="rank">${entry.rank}</td>
+    return `<tr class="${isLeader ? "leader" : ""}"><td class="rank-number">${entry.rank}</td>
       <td class="team">${escapeHtml(entry.username)}${youLabel}</td>
-      <td class="r num">${entry.points}</td><td class="r num">+${gain}</td>
-      <td class="r"><span class="delta ${changeClass}">${changeText}</span></td></tr>`;
+      <td class="right number">${entry.points}</td><td class="right number">+${gain}</td>
+      <td class="right"><span class="rank-change ${changeClass}">${changeText}</span></td></tr>`;
   }).join("");
-  return `<div class="panel"><div class="tbl"><table>
-    <tr><th>#</th><th>Bruger</th><th class="r">Point</th><th class="r">Siden sidst</th><th class="r">Placering</th></tr>${rows}
+  return `<div class="panel"><div class="table-scroll"><table>
+    <tr><th>#</th><th>Bruger</th><th class="right">Point</th><th class="right">Siden sidst</th><th class="right">Placering</th></tr>${rows}
     </table></div><p class="muted small">Andres hold kan ses, når en fase er låst. Point opdateres efter hver kamp.</p></div>`;
 }
 
@@ -86,12 +86,12 @@ async function drawLeaderHistory(root, state) {
   if (!container) return;
   const first = Math.max(1, state.timeline.length - LEADER_HISTORY_LENGTH + 1);
   const positions = Array.from({ length: state.timeline.length - first + 1 }, (_, index) => first + index);
-  const allStandings = await Promise.all(positions.map(state.standingsAt));
+  const allStandings = await Promise.all(positions.map(state.loadStandingsAt));
   container.innerHTML = positions.map((position, index) => {
     const leader = allStandings[index][0];
     const label = escapeHtml(state.timeline[position - 1].label);
     const leaderName = leader && leader.points > 0 ? escapeHtml(leader.username) : "–";
-    return `<span class="${position === state.position ? "cur" : ""}" title="${label}">${label}: ${leaderName}</span>`;
+    return `<span class="${position === state.position ? "current" : ""}" title="${label}">${label}: ${leaderName}</span>`;
   }).join("");
 }
 

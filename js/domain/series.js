@@ -17,10 +17,10 @@ export function groupSeriesRows(rows) {
     series.teams.push({ id: row.pro_team_id, code: row.team_code, name: row.team_name, wins: row.game_wins });
     seriesById.set(row.series_id, series);
   }
-  return [...seriesById.values()].map(withResult);
+  return [...seriesById.values()].map(addResult);
 }
 
-function withResult(series) {
+function addResult(series) {
   const needed = winsNeeded(series.bestOf);
   const isDecided = series.teams.some((team) => team.wins >= needed);
   const isLive = !isDecided && series.teams.some((team) => team.wins > 0);
@@ -45,7 +45,7 @@ export function phaseRecords(seriesList) {
 export const seriesLabel = (series) => series.teams.map((team) => team.code).join("–");
 
 // Afsluttede serier i tidsorden: hvert punkt er et tidspunkt, hvor stillingen kan vises
-export function seriesTimeline(seriesList) {
+export function finishedSeriesInOrder(seriesList) {
   return seriesList
     .filter((series) => series.lastGameEndedAt)
     .map((series) => ({ at: series.lastGameEndedAt, label: seriesLabel(series) }))
@@ -53,7 +53,7 @@ export function seriesTimeline(seriesList) {
 }
 
 // Udsnit af kampprogrammet omkring "nu": de seneste afgjorte og de næste kampe
-export function scheduleWindow(seriesList, before = 4, after = 8) {
+export function recentAndUpcomingSeries(seriesList, before = 4, after = 8) {
   const firstOpen = Math.max(0, seriesList.findIndex((series) => !series.isDecided));
   return seriesList.slice(Math.max(0, firstOpen - before), firstOpen + after);
 }

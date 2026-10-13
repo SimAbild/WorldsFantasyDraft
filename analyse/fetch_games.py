@@ -1,73 +1,92 @@
-"""Hent Worlds 2025 slutstats pr. kamp fra lolesports livestats -> data/games.json"""
-import json, sys, time, urllib.request
+"""Ansvar: Henter slutstats for hver kamp i events.json fra lolesports' livestats-feed og gemmer dem i games.json.
+
+Kør:  python3 fetch_games.py <datamappe>    (mappen skal indeholde events.json)
+"""
+import json
+import sys
+import time
+import urllib.request
 from datetime import datetime, timedelta
 
-DATA = sys.argv[1]
-FEED = "https://feed.lolesports.com/livestats/v1"
+LIVESTATS_FEED = "https://feed.lolesports.com/livestats/v1"
+FINAL_FRAME_OFFSET = timedelta(minutes=90)   # sidste frame hentes 90 min efter kampstart
+FEED_TIME_ROUNDING_SECONDS = 10              # feedet vil have tider rundet ned til 10 sekunder
+MAX_ATTEMPTS = 4
+PAUSE_BETWEEN_GAMES_SECONDS = 0.3
 
 
-def get(url):
-    for attempt in range(4):
+def fetch_json(url):
+    """Henter JSON med op til fire forsøg. Returnerer None, hvis det ikke lykkes."""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            with urllib.request.urlopen(url, timeout=30) as r:
-                body = r.read()
+            with urllib.request.urlopen(url, timeout=30) as response:
+                body = response.read()
                 return json.loads(body) if body else None
-        except Exception as e:
-            if attempt == 3:
-                print("FEJL", url, e, file=sys.stderr)
+        except Exception as error:
+            if attempt == MAX_ATTEMPTS:
+                print("Fejl:", url, error, file=sys.stderr)
                 return None
-            time.sleep(2 * (attempt + 1))
+            time.sleep(2 * attempt)
 
 
-def ts(s):
-    return datetime.fromisoformat(s.replace("Z", "+00:00"))
+def parse_time(text):
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
 
-def iso(t):
-    t = t.replace(microsecond=0, second=(t.second // 10) * 10)
-    return t.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+def feed_timestamp(moment):
+    rounded = moment.replace(microsecond=0, second=moment.second // FEED_TIME_ROUNDING_SECONDS * FEED_TIME_ROUNDING_SECONDS)
+    return rounded.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-events = json.load(open(f"{DATA}/events.json"))["data"]["schedule"]["events"]
-games_out = []
-for ev in events:
-    match = ev["match"]
-    for g in ev["games"]:
-        gid = g["id"]
-        w0 = get(f"{FEED}/window/{gid}")
-        if not w0 or not w0.get("frames"):
-            continue
-        start = ts(w0["frames"][0]["rfc460Timestamp"])
-        late = iso(start + timedelta(minutes=90))
-        wl = get(f"{FEED}/window/{gid}?startingTime={late}")
-        dl = get(f"{FEED}/details/{gid}?startingTime={late}")
-        if not wl or not dl:
-            continue
-        fw, fd = wl["frames"][-1], dl["frames"][-1]
-        if fw["gameState"] != "finished":
-            continue
-        meta = w0["gameMetadata"]
-        games_out.append({
-            "gameId": gid,
-            "matchId": match["id"],
-            "block": ev.get("blockName"),
-            "minutes": (ts(fw["rfc460Timestamp"]) - start).total_seconds() / 60,
-            "teams": {
-                side: {
-                    "dragons": fw[f"{side}Team"]["dragons"],
-                    "barons": fw[f"{side}Team"]["barons"],
-                    "towers": fw[f"{side}Team"]["towers"],
-                    "inhibitors": fw[f"{side}Team"]["inhibitors"],
-                    "kills": fw[f"{side}Team"]["totalKills"],
-                    "gold": fw[f"{side}Team"]["totalGold"],
-                    "players": meta[f"{side}TeamMetadata"]["participantMetadata"],
-                }
-                for side in ("blue", "red")
-            },
-            "participants": fd["participants"],
-        })
-        print(len(games_out), gid, file=sys.stderr)
-        time.sleep(0.3)
+def fetch_final_stats(series_id, block_name, game_id):
+    first_window = fetch_json(f"{LIVESTATS_FEED}/window/{game_id}")
+    if not first_window or not first_window.get("frames"):
+        return None
+    started_at = parse_time(first_window["frames"][0]["rfc460Timestamp"])
+    final_time = feed_timestamp(started_at + FINAL_FRAME_OFFSET)
+    last_window = fetch_json(f"{LIVESTATS_FEED}/window/{game_id}?startingTime={final_time}")
+    last_details = fetch_json(f"{LIVESTATS_FEED}/details/{game_id}?startingTime={final_time}")
+    if not last_window or not last_details:
+        return None
+    window_frame, details_frame = last_window["frames"][-1], last_details["frames"][-1]
+    if window_frame["gameState"] != "finished":
+        return None
+    metadata = first_window["gameMetadata"]
+    return {
+        "gameId": game_id,
+        "matchId": series_id,
+        "block": block_name,
+        "minutes": (parse_time(window_frame["rfc460Timestamp"]) - started_at).total_seconds() / 60,
+        "teams": {side: team_summary(window_frame[f"{side}Team"], metadata[f"{side}TeamMetadata"]) for side in ("blue", "red")},
+        "participants": details_frame["participants"],
+    }
 
-json.dump(games_out, open(f"{DATA}/games.json", "w"))
-print("kampe:", len(games_out))
+
+def team_summary(team_frame, team_metadata):
+    return {
+        "dragons": team_frame["dragons"],
+        "barons": team_frame["barons"],
+        "towers": team_frame["towers"],
+        "inhibitors": team_frame["inhibitors"],
+        "kills": team_frame["totalKills"],
+        "gold": team_frame["totalGold"],
+        "players": team_metadata["participantMetadata"],
+    }
+
+
+def main(data_folder):
+    events = json.load(open(f"{data_folder}/events.json"))["data"]["schedule"]["events"]
+    games = []
+    for event in events:
+        for game in event["games"]:
+            stats = fetch_final_stats(event["match"]["id"], event.get("blockName"), game["id"])
+            if stats:
+                games.append(stats)
+                print(len(games), game["id"], file=sys.stderr)
+            time.sleep(PAUSE_BETWEEN_GAMES_SECONDS)
+    json.dump(games, open(f"{data_folder}/games.json", "w"))
+    print("Kampe hentet:", len(games))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

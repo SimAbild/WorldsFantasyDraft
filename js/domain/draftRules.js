@@ -1,7 +1,7 @@
 // Ansvar: Draft-reglerne på klientsiden, så brugeren får besked med det samme.
 // Databasens submit_draft håndhæver de samme regler endeligt og kan ikke omgås.
 import { ROLES } from "./roles.js";
-import { isTwoTeamPhase, slotLabel } from "./phase.js";
+import { isTwoTeamPhase, teamLetter } from "./phase.js";
 
 // Brugerens hold i fasen: gemte valg, ellers tomme pladser
 export function teamsFromSaved(savedTeams, phase) {
@@ -15,7 +15,7 @@ export function teamsFromSaved(savedTeams, phase) {
 }
 
 function defaultTeamName(phase, slot) {
-  return isTwoTeamPhase(phase) ? `Hold ${slotLabel(slot)}` : "Mit hold";
+  return isTwoTeamPhase(phase) ? `Hold ${teamLetter(slot)}` : "Mit hold";
 }
 
 export function usedPlayerIds(teams) {
@@ -38,7 +38,7 @@ export function removePlayer(teams, slot, roleCode) {
 }
 
 // Alle brud på reglerne. Holdet kan først gemmes, når listen er tom.
-// severity "info" = noget mangler endnu; "error" = en regel er brudt.
+// isRuleBroken: false = noget mangler endnu, true = en regel er brudt (fx over budget).
 export function draftProblems(teams, cardsById, phase) {
   return [
     ...missingRoleProblems(teams),
@@ -51,7 +51,7 @@ function missingRoleProblems(teams) {
   return teams
     .map((team) => ({ team, missing: ROLES.filter((role) => !team.picks[role]).length }))
     .filter(({ missing }) => missing > 0)
-    .map(({ team, missing }) => ({ severity: "info", text: `${team.name}: ${missing} roller mangler` }));
+    .map(({ team, missing }) => ({ isRuleBroken: false, text: `${team.name}: ${missing} roller mangler` }));
 }
 
 function budgetProblems(teams, cardsById, phase) {
@@ -59,7 +59,7 @@ function budgetProblems(teams, cardsById, phase) {
   return teams
     .map((team) => ({ team, overBy: teamCost(team, cardsById) - phase.budget }))
     .filter(({ overBy }) => overBy > 0)
-    .map(({ team, overBy }) => ({ severity: "error", text: `${team.name} er ${overBy} over budget` }));
+    .map(({ team, overBy }) => ({ isRuleBroken: true, text: `${team.name} er ${overBy} over budget` }));
 }
 
 function teamLimitProblems(teams, cardsById, phase) {
@@ -71,7 +71,7 @@ function teamLimitProblems(teams, cardsById, phase) {
   }
   return [...countByTeam]
     .filter(([, count]) => count > phase.max_per_team)
-    .map(([teamCode, count]) => ({ severity: "error", text: `${count} spillere fra ${teamCode} (højst ${phase.max_per_team})` }));
+    .map(([teamCode, count]) => ({ isRuleBroken: true, text: `${count} spillere fra ${teamCode} (højst ${phase.max_per_team})` }));
 }
 
 // Formatet databasens submit_draft forventer

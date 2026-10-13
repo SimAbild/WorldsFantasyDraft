@@ -27,4 +27,4 @@ export function defaultDraftPhase(phases, now = Date.now()) {
 export const isTwoTeamPhase = (phase) => phase.teams_per_user === 2;
 
 // Swiss-holdene hedder A og B
-export const slotLabel = (slot) => "AB"[slot - 1];
+export const teamLetter = (slot) => "AB"[slot - 1];

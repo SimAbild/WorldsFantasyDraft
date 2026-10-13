@@ -2,16 +2,16 @@
 -- Kan køres igen uden dubletter. Skabelon for de næste faser: ret holdene, priserne og begrundelserne.
 -- Spillerbilleder sættes ikke her; dem henter ingest selv.
 
--- Holdene med power ranking, prisklasse og begrundelse
+-- Holdene med power ranking, prisklasse og begrundelse. Kilde: lolesports.com/gpr, 11. okt. 2026.
 with play_in_team(esports_team_id, code, name, region, power_rank, tier_code, reason) as (values
   ('111692118851466302', 'KC',  'Karmine Corp', 'LEC',   1, 'favorit',
-   'LEC''s 3. seed. Europa har de bedste internationale resultater af de fire regioner i Play-In.'),
+   'Nr. 11 i lolesports'' Global Power Rankings (11. okt.). Højest af de fire hold i Play-In.'),
   ('98767991877340524',  'C9',  'Cloud9 Kia',   'LCS',   2, 'staerk',
-   'Fra LCS (Nordamerika). Nordamerika ligger internationalt under Europa, men over Brasilien og Stillehavsregionen.'),
-  ('100205576309502431', 'FUR', 'FURIA',        'CBLOL', 3, 'middel',
-   'Fra CBLOL (Brasilien). Brasilianske hold har sjældent vundet serier mod Europa og Nordamerika ved Worlds.'),
-  ('107251245690956393', 'MVK', 'MVK Esports',  'LCP',   4, 'underdog',
-   'LCP''s 3. seed, kvalificeret via championship points. Vurderet som det svageste af de fire hold på papiret.')
+   'Nr. 16 i lolesports'' Global Power Rankings (11. okt.). Nummer to af de fire hold i Play-In.'),
+  ('107251245690956393', 'MVK', 'MVK Esports',  'LCP',   3, 'middel',
+   'Nr. 28 i lolesports'' Global Power Rankings (11. okt.). Nummer tre af de fire hold i Play-In.'),
+  ('100205576309502431', 'FUR', 'FURIA',        'CBLOL', 4, 'underdog',
+   'Nr. 35 i lolesports'' Global Power Rankings (11. okt.). Lavest af de fire hold i Play-In.')
 ),
 saved_team as (
   insert into public.pro_team (esports_team_id, code, name, region)

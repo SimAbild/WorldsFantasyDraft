@@ -114,7 +114,7 @@ function rulesHtml(phase) {
       <p>Kun startspillere kan vælges. "Lock in" gemmer; du kan ændre indtil fristen.</p></div>
     <div><h3>Hvorfor har holdene forskellige priser?</h3>
       <p>Prisen er en vurdering af holdets styrke <b>før</b> fasen, ikke af den enkelte spiller.</p>
-      <p>I Play-In og Swiss ses på <b>regionens resultater</b> ved internationale turneringer og <b>holdets placering (seed)</b> i regionen. I kvartfinale og semifinale ses på <b>Swiss-resultatet</b>.</p>
+      <p>Prisklassen følger holdets placering i <b>lolesports' Global Power Rankings</b>, når draften åbner. Højest placeret er dyrest.</p>
       <p>Hvert holds begrundelse står, når du vælger holdet. Underdogs er billige, men kan score lige så mange point.</p></div>
   </div></details>`;
 }

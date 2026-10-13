@@ -58,7 +58,7 @@ Tekniske ord, der bruges i koden og i denne README.
 | **fase** | Play-In, Swiss, kvartfinale, semifinale eller finale. |
 | **prisklasse** (tier) | Favorit, Stærk, Middel eller Underdog. Bestemmer spillerens pris. |
 | **slot** | Holdnummer i en fase. I Swiss har brugeren slot 1 og 2 (hold A og B). |
-| **power ranking** | lolesports' egen rangering af holdene. Bruges til at sortere draft-siden. |
+| **power ranking** | lolesports' Global Power Rankings: Riots egen rangering af alle hold. Bestemmer prisklassen og rækkefølgen på draft-siden. |
 | **MVP / ACE** | Bedste spiller på vinderholdet (MVP) og på taberholdet (ACE) i et game. Begge får +3. |
 | **z-score** | Hvor mange standardafvigelser en værdi ligger over eller under snittet. Bruges til at sammenligne roller. |
 | **kill participation** (KP) | Andel af holdets kills, spilleren var med til (kills + assists). |
@@ -183,11 +183,11 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | Valg | Begrundelse | Fravalgt |
 |---|---|---|
 | **Pris pr. hold, ikke pr. spiller** | Enkelt at forstå og at sætte. Alle fem spillere på et hold koster det samme. | Individuelle spillerpriser. |
-| **Swiss: 4 prisklasser** – Favorit 26 · Stærk 22 · Middel 18 · Underdog 14 | Sat ud fra region og regional placering. Spredningen gør underdogs attraktive. | Faste priser for alle. |
-| **Knockout: 2 prisklasser** – Favorit 23 · Underdog 17 | Sat ud fra Swiss-resultatet. Det lille spænd betyder, at valget handler om, hvem man tror spiller godt. | 26/14 (for stort spænd i små faser). |
-| **Play-In: 26 / 22 / 18 / 14** (KC, C9, FUR, MVK) | Samme skala som Swiss. Budgettet tvinger mindst ét underdog-valg. | – |
+| **Swiss: 4 prisklasser** – Favorit 26 · Stærk 22 · Middel 18 · Underdog 14 | Sat ud fra power ranking. Spredningen gør underdogs attraktive. | Faste priser for alle. |
+| **Knockout: 2 prisklasser** – Favorit 23 · Underdog 17 | Sat ud fra power ranking efter Swiss. Det lille spænd betyder, at valget handler om, hvem man tror spiller godt. | 26/14 (for stort spænd i små faser). |
+| **Play-In: 26 / 22 / 18 / 14** (KC #11, C9 #16, MVK #28, FUR #35 i power ranking 11. okt.) | Samme skala som Swiss. Budgettet tvinger mindst ét underdog-valg. | – |
 | **Hver prisklasse har en skrevet begrundelse** | Brugeren skal kunne se, hvorfor et hold er Stærk og et andet Underdog. Begrundelsen står ved holdet i draften og ligger i `team_price.reason`. | Kun et tal uden forklaring. |
-| **Prisklassen sættes ud fra** regionens internationale resultater og holdets seed (Play-In og Swiss) eller Swiss-resultatet (knockout) | Kriterierne er kendte for alle og kan tjekkes. | Egen vurdering af formen. |
+| **Prisklassen følger lolesports' Global Power Rankings**, når draften åbner | Én kilde, som alle kan slå op og tjekke. Ingen egen vurdering. | Region og seed (gav FUR en højere pris end MVK, selvom MVK er rangeret højere). |
 | **Prismodellen blev beholdt efter simulering** | Simuleringen på Worlds 2024 og 2025 viste, at viden belønnes stærkt uden prisjusteringer. | Dynamiske priser, der stiger og falder. |
 
 ### Fravalgte mekanikker
@@ -369,7 +369,7 @@ Opgaver, der skal laves i hånden:
 
 | Hvornår | Opgave |
 |---|---|
-| Før hver draft | Sæt prisklasse og begrundelse pr. hold i `team_price` (`tier_code`, `reason`) og power ranking i `tournament_team.power_rank`. Play-In ligger i `supabase/seed/03_play_in_2026.sql` som eksempel. |
+| Før hver draft | Sæt prisklasse og begrundelse pr. hold i `team_price` (`tier_code`, `reason`) og power ranking i `tournament_team.power_rank`, begge fra [lolesports.com/gpr](https://lolesports.com/en-GB/gpr). Play-In ligger i `supabase/seed/03_play_in_2026.sql` som eksempel. |
 | Når holdene er kendt | Markér startspillere i `roster.is_starter`. |
 | Når en bruger glemmer sit password | Nulstil det i Supabase-dashboardet under Authentication. |
 | Kun én gang | Slå "Confirm email" fra i Supabase under Authentication → Sign In / Providers → Email. |

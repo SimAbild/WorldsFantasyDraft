@@ -342,7 +342,7 @@ part_a = np.maximum(PART_A_FLOOR, scored.part_a_raw * scored.role.map(role_multi
 - Leaderboardet viser alle brugere. Valg af liga, "Opret liga" og "Join med kode" er fjernet.
 - Databasefunktionen `standings(tidspunkt)` erstatter `league_standings(liga, tidspunkt)`.
 - `api.js` har mistet `fetchMyLeagues`, `createLeague` og `joinLeague`. `fetchStandings` tager ikke længere en liga.
-- Ligatabellerne bliver i databasen, indtil den nye frontend er på `main`. Derefter fjernes de i migration 013, så den kørende side ikke går i stykker undervejs.
+- Ligatabellerne blev i databasen, indtil den nye frontend var på `main`. Derefter blev de fjernet i migration 013, så den kørende side ikke gik i stykker undervejs.
 
 **Hvorfor:**
 Spillet deles kun med en vennegruppe. Ligaer tilføjede tre tabeller, fire databasefunktioner og to formularer uden at give vennerne noget.

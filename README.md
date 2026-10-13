@@ -7,6 +7,7 @@ Et fantasy-spil til **League of Legends Worlds 2026**, som en vennegruppe (6–8
 ## Indhold
 
 1. [Formål](#formål)
+   - [Ordliste](#ordliste)
 2. [Hvad spillet indeholder](#hvad-spillet-indeholder)
 3. [Lavet med](#lavet-med)
 4. [Arkitektur](#arkitektur)
@@ -31,6 +32,38 @@ Et fantasy-spil til **League of Legends Worlds 2026**, som en vennegruppe (6–8
 - Lave et pointsystem, hvor **en sejr ikke trumfer personlig præstation**. En stærk spiller på et tabende hold skal kunne slå en svag spiller på vinderholdet.
 - Skabe en **risk/reward-følelse**: underdogs kan score stort, mens sikre favoritter mest vinder gennem sejre.
 - Være gratis at drive og kunne bygges på få dage.
+
+---
+
+## Ordliste
+
+Tekniske ord, der bruges i koden og i denne README.
+
+| Ord | Betydning |
+|---|---|
+| **cron** | En tidsplan, der kører en opgave automatisk. Her kalder `pg_cron` funktionen `ingest` hvert 5. minut. |
+| **Edge Function** | Et lille program, der kører på Supabase' server i stedet for i browseren. `ingest` er vores eneste. |
+| **ingest** | At hente data udefra og gemme dem. Funktionen `ingest` henter kampe fra lolesports. |
+| **feed** | lolesports' datastrøm med stats fra kampene, mens de spilles. |
+| **view** | En gemt databaseforespørgsel, der kan læses som en tabel. Alle point regnes i views, så intet afledt gemmes. |
+| **RPC** | En databasefunktion, som appen kalder direkte, fx `submit_draft`. |
+| **RLS** (Row Level Security) | Regler i databasen for, hvem der må se og ændre hvilke rækker. |
+| **upsert** | Indsæt rækken, eller opdatér den, hvis den allerede findes. |
+| **idempotent** | Kan køres flere gange med samme resultat. `ingest` laver aldrig dubletter. |
+| **migration** | En SQL-fil, der ændrer databasens opbygning. De ligger nummereret i `supabase/migrations`. |
+| **seed** | Startdata, fx roller, priser og faser. Ligger i `supabase/seed`. |
+| **3NF** (3. normalform) | Regel for tabeldesign: hvert fakta står ét sted, og intet afhænger af andet end nøglen. |
+| **serie** | En kamp mellem to hold, spillet som Bo1, Bo3 eller Bo5 (bedst af 1, 3 eller 5 games). |
+| **game** | Ét enkelt spil i en serie. |
+| **fase** | Play-In, Swiss, kvartfinale, semifinale eller finale. |
+| **prisklasse** (tier) | Favorit, Stærk, Middel eller Underdog. Bestemmer spillerens pris. |
+| **slot** | Holdnummer i en fase. I Swiss har brugeren slot 1 og 2 (hold A og B). |
+| **power ranking** | lolesports' egen rangering af holdene. Bruges til at sortere draft-siden. |
+| **MVP / ACE** | Bedste spiller på vinderholdet (MVP) og på taberholdet (ACE) i et game. Begge får +3. |
+| **z-score** | Hvor mange standardafvigelser en værdi ligger over eller under snittet. Bruges til at sammenligne roller. |
+| **kill participation** (KP) | Andel af holdets kills, spilleren var med til (kills + assists). |
+| **CS/min** | Minions og monstre dræbt pr. minut. |
+| **domain** | Mappen med spillets regler som rene funktioner, adskilt fra siderne. |
 
 ---
 
@@ -89,18 +122,23 @@ css/app.css                     Al styling (designtokens øverst)
 js/
   config.js                     Supabase-URL, offentlig nøgle, tidszone
   api.js                        Al kommunikation med Supabase samlet ét sted
-  ui.js                         Fælles hjælpere: escaping, datoer, spillerkort
+  ui.js                         Præsentation: escaping, datoer, visningsnavne, spillerkort
   app.js                        Opstart, login-tjek og skift mellem faner
-  views/
-    login.js                    Login og oprettelse
-    home.js                     Forside
-    draft.js                    Fantasy draft
-    leaderboard.js              Leaderboard og ligaer
-    mine.js                     Mine hold
+  domain/                       Spillets regler som rene funktioner (testes uden browser)
+    roles.js                    De fem roller
+    phase.js                    Fasernes tilstand og aktuel fase
+    series.js                   Serier, stilling, tidslinje og kampprogram
+    draftRules.js               Draft-reglerne på klientsiden
+  views/                        Én fil pr. side
+    login.js · home.js · draft.js · leaderboard.js · mine.js
+tests/                          Unit tests af domain/ (npm test)
 supabase/
   functions/ingest/index.ts     Henter kampe og stats fra lolesports
-  migrations/                   Kopi af databaseskemaet (til læsning)
+  migrations/                   Databaseskemaet med samme numre som i Supabase
+  seed/                         Opslagsdata, faser og kalibrering
+analyse/                        Pointmodel, kalibrering og simulering i Python
 docs/ui-skitser.html            De godkendte UI-skitser
+IMPROVEMENTS.md                 Refaktoreringer med før, efter og hvorfor
 ```
 
 ---
@@ -265,6 +303,21 @@ De godkendte skitser ligger i [`docs/ui-skitser.html`](docs/ui-skitser.html).
 | **`api.js` er det eneste modul, der kender Supabase** | Lav kobling: visningerne kalder funktioner og får almindelige objekter tilbage. |
 | **Én fil pr. visning** | Høj samhørighed: hver fil har ét ansvar. |
 | **Al tekst fra databasen escapes** | Beskytter mod HTML-injektion via brugernavne og holdnavne. |
+| **Regler i `domain/`, adskilt fra visningerne** | GRASP Information Expert og høj samhørighed: reglerne kan unit-testes uden browser. |
+
+### Kodeprincipper
+
+Koden følger samme principper som [ProgExam](https://github.com/SimAbild/ProgExam):
+
+| Princip | Sådan ses det i koden |
+|---|---|
+| **Ansvar pr. fil** | Hver fil starter med `// Ansvar:` på én linje. |
+| **Korte metoder, der læses som trin** | Fx `submit_draft`: `assert_draft_open` → `assert_draft_valid` → `save_draft`. |
+| **Fulde navne** | Ingen forkortelser som `ph` eller `c`; tal har navne (`RUN_TIME_BUDGET_MS`). |
+| **DRY** | Serie-logik, fase-regler og prisklasser findes ét sted hver. `submit_draft` bygger på `v_player_card`. |
+| **GRASP** | `api.js` er en Pure Fabrication med lav kobling; `domain/` er Information Expert; `app.js` er Controller. |
+| **Tests** | 20 unit tests med Nodes indbyggede testværktøj (`npm test`). |
+| **Dokumenterede ændringer** | [IMPROVEMENTS.md](IMPROVEMENTS.md) med før, efter og hvorfor. |
 
 ---
 
@@ -330,7 +383,8 @@ Alle tider er dansk tid.
 ## Kør lokalt
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000   # appen på http://localhost:8000
+npm test                       # unit tests (kræver Node 20+)
 ```
 
 Åbn http://localhost:8000. Appen taler direkte med Supabase-projektet.

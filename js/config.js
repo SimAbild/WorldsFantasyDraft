@@ -1,4 +1,6 @@
-// Forbindelse til Supabase. Den offentlige nøgle må gerne ligge her, fordi RLS styrer adgangen.
+// Ansvar: Konfiguration samlet ét sted – forbindelse til Supabase og tidszone.
+// Den offentlige nøgle må gerne ligge her, fordi RLS styrer adgangen.
+
 export const SUPABASE_URL = "https://upeazblgasdqxmyaievq.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_pQRwbR5du-bdUEElpgydXQ_uTTGul3m";
 
@@ -6,4 +8,4 @@ export const SUPABASE_KEY = "sb_publishable_pQRwbR5du-bdUEElpgydXQ_uTTGul3m";
 export const EMAIL_DOMAIN = "users.worldsfantasy.app";
 
 // Alle tider vises i dansk tid
-export const TZ = "Europe/Copenhagen";
+export const TIME_ZONE = "Europe/Copenhagen";

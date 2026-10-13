@@ -288,7 +288,7 @@ Siden er gennemgået efter Nielsens 10 usability-heuristikker og WCAG 2.1 AA. Fu
 | Opslag | `role`, `dragon_type`, `price_tier`, `metric` |
 | Kalibrering | `calibration`, `calibration_role`, `calibration_metric` |
 | Turnering | `tournament`, `phase`, `pro_team`, `player`, `tournament_team`, `roster`, `team_price`, `series`, `series_team`, `game`, `game_team`, `game_dragon`, `game_player` |
-| Brugere | `profile`, `fantasy_team`, `fantasy_pick` (ligatabellerne fra første version fjernes i migration 013) |
+| Brugere | `profile`, `fantasy_team`, `fantasy_pick` (ligatabellerne fra første version er fjernet i migration 013) |
 
 **Views:** `v_game_player` → `v_game_score` → `v_series_points` → `v_phase_points` → `v_fantasy_pick_points` → `v_fantasy_team`, samt `v_player_card`, `v_series`, `v_team_stats` og `v_player_stats`. Funktionen `standings(tidspunkt)` giver stillingen for alle brugere på et vilkårligt tidspunkt.
 

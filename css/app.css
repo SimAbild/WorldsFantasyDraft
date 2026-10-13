@@ -1,7 +1,7 @@
 /* Mørk esports-skal: fast topnavigation, sider som faner, bygget til PC-browser */
 :root{
   --bg:#07090d; --surface:#10141b; --raise:#171c25; --line:#252c38;
-  --fg:#eef2f7; --muted:#8b96a7; --accent:#4fd1e8; --gold:#e3b54d; --silver:#b9c3cf; --bronze:#c58a5a; --win:#4cc38a; --loss:#e0655b;
+  --fg:#eef2f7; --control-border:#66717f; --muted:#8b96a7; --accent:#4fd1e8; --gold:#e3b54d; --silver:#b9c3cf; --bronze:#c58a5a; --win:#4cc38a; --loss:#e0655b;
   --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
   color-scheme:dark;
 }
@@ -18,7 +18,7 @@ p{margin:0}
 .muted{color:var(--muted)}
 .small{font-size:13px}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,.card:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .link{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline}
 .error{color:var(--loss);font-size:14px}
 .success{color:var(--win)}
@@ -36,7 +36,7 @@ nav button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
 
 /* formularer og knapper */
 label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:grid;gap:6px}
-input,select{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;color:var(--fg);font:inherit}
+input,select{background:var(--bg);border:1px solid var(--control-border);border-radius:4px;padding:10px 12px;color:var(--fg);font:inherit}
 .btn{background:var(--accent);color:#04161a;border:0;border-radius:4px;padding:11px 18px;font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.08em;text-transform:uppercase}
 .btn.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -101,13 +101,18 @@ details.rules-toggle summary{cursor:pointer;font-family:var(--display);font-size
 .card[data-tier=favorit]{--rim:var(--gold)} .card[data-tier=staerk]{--rim:var(--silver)} .card[data-tier=middel]{--rim:var(--bronze)} .card[data-tier=fri]{--rim:var(--accent)}
 .card .top-row{display:flex;justify-content:space-between;align-items:flex-start}
 .card .price{font-family:var(--display);font-size:28px;font-weight:800;line-height:.9}
-.card .price small{display:block;font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600}
+.card .price small{display:block;font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:600}
 .card .role{font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right}
 .card .face{display:grid;place-items:center}
 .card .face span{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--rim);font-family:var(--display);font-size:22px;font-weight:700;color:var(--muted)}
 .card .name{font-family:var(--display);font-size:20px;font-weight:700;text-align:center;text-transform:uppercase;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .card-team{font-size:11px;text-align:center;color:var(--muted);letter-spacing:.1em}
 .card[aria-disabled="true"]{opacity:.35;cursor:not-allowed}
+/* Valgte kort: tydelig "Valgt"-mærkat i fuld kontrast, resten dæmpet */
+.card{position:relative}
+.card[data-on-team="true"]{opacity:1;cursor:default}
+.card[data-on-team="true"] > :not(.card-status){opacity:.4}
+.card-status{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--accent);color:var(--bg);font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:4px}
 .my-teams{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .my-teams.single{grid-template-columns:1fr}
 .my-team{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px;min-width:0}
@@ -118,7 +123,7 @@ details.rules-toggle summary{cursor:pointer;font-family:var(--display);font-size
 .bar i{display:block;height:100%;background:var(--accent)}
 .bar.over-budget i{background:var(--loss)}
 .role-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.role-slot{min-height:150px;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;align-content:center;gap:4px;padding:6px;text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg);min-width:0}
+.role-slot{min-height:150px;border:1.5px dashed var(--control-border);border-radius:10px;display:grid;place-items:center;align-content:center;gap:4px;padding:6px;text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg);min-width:0}
 .role-slot.drag-over{border-color:var(--accent)}
 .role-slot .card{width:100%;cursor:pointer}
 .role-slot .card .name{font-size:16px}
@@ -156,3 +161,33 @@ tr.leader td{background:color-mix(in srgb,var(--gold) 10%,transparent)}
   .phase-tabs{grid-template-columns:1fr 1fr}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- Spillerbilleder ---------- */
+.card .face img{width:58px;height:58px;border-radius:50%;object-fit:cover;object-position:top;background:var(--bg);border:1px solid var(--rim)}
+.card .face .initials{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--rim);font-family:var(--display);font-size:22px;font-weight:700;color:var(--muted)}
+.role-slot .card .face img,.role-slot .card .face .initials{width:40px;height:40px;font-size:16px}
+.avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;display:inline-grid;place-items:center;background:var(--raise);border:1px solid var(--line);flex:0 0 auto}
+.avatar img{width:100%;height:100%;object-fit:cover;object-position:top}
+.avatar .initials{font-family:var(--display);font-size:13px;font-weight:700;color:var(--muted)}
+.player-identity{display:flex;gap:10px;align-items:center;min-width:0}
+.player-list{display:grid;gap:10px}
+
+/* ---------- Draft ---------- */
+.role-slot{position:relative}
+.slot-hint{font-size:12px;letter-spacing:.04em;text-transform:none}
+.remove-player{background:var(--surface);border:1px solid var(--control-border);border-radius:4px;color:var(--fg);font-size:12px;padding:4px 10px;min-height:28px}
+.remove-player:hover{border-color:var(--loss);color:var(--loss)}
+.price-reason{color:var(--muted);font-size:14px;max-width:70ch;margin-top:4px}
+.unsaved{color:var(--gold)}
+details.rules-toggle summary{min-height:32px;display:flex;align-items:center}
+
+/* ---------- Leaderboard ---------- */
+.user-link{background:none;border:0;padding:4px 0;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.03em;color:var(--fg);text-decoration:underline;text-decoration-color:var(--control-border);text-underline-offset:4px;cursor:pointer}
+.user-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:10px;width:min(1100px,94vw);max-height:90vh;padding:0}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+.dialog-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-body{padding:20px;display:grid;gap:24px}
+
+/* Tekst kun til skærmlæsere */
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

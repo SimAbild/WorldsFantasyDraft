@@ -13,8 +13,18 @@ const viewRoot = document.getElementById("view");
 const topbar = document.getElementById("topbar");
 let context = null;
 
+let currentViewName = null;
+
+// Advarer, før brugeren forlader draften med ændringer, der ikke er gemt
+function mayLeaveCurrentView() {
+  if (currentViewName !== "draft" || !draftView.hasUnsavedChanges()) return true;
+  return confirm("Du har ændringer i dit hold, der ikke er gemt. Vil du forlade siden alligevel?");
+}
+
 async function showView(name) {
   const viewName = VIEWS[name] ? name : DEFAULT_VIEW;
+  if (!mayLeaveCurrentView()) return;
+  currentViewName = viewName;
   markActiveTab(viewName);
   if (location.hash !== `#${viewName}`) history.replaceState(null, "", `#${viewName}`);
   viewRoot.innerHTML = `<p class="muted">Henter…</p>`;
@@ -53,5 +63,13 @@ async function start() {
 }
 
 document.querySelectorAll("nav [data-view]").forEach((tab) => { tab.onclick = () => showView(tab.dataset.view); });
-document.getElementById("logout").onclick = async () => { await api.signOut(); start(); };
+document.getElementById("logout").onclick = async () => {
+  if (!mayLeaveCurrentView()) return;
+  await api.signOut();
+  currentViewName = null;
+  start();
+};
+window.addEventListener("beforeunload", (event) => {
+  if (currentViewName === "draft" && draftView.hasUnsavedChanges()) event.preventDefault();
+});
 start();

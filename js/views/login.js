@@ -7,8 +7,9 @@ const MIN_PASSWORD_LENGTH = 6;
 
 // Oversætter Supabase' engelske fejl til dansk
 function friendlyError(message) {
-  if (/Invalid login/i.test(message)) return "Forkert brugernavn eller password.";
-  if (/already registered/i.test(message)) return "Brugernavnet er taget.";
+  if (/Invalid login/i.test(message)) return "Forkert brugernavn eller password. Er du ny, så tryk Opret bruger.";
+  if (/already registered/i.test(message)) return "Brugernavnet er taget. Vælg et andet.";
+  if (/rate limit/i.test(message)) return "For mange forsøg lige nu. Vent et par minutter, og prøv igen.";
   return message;
 }
 

@@ -5,7 +5,12 @@ import { ROLES } from "../domain/roles.js";
 import { phaseState, defaultDraftPhase, isTwoTeamPhase, teamLetter, PHASE_STATE } from "../domain/phase.js";
 import { teamsFromSaved, usedPlayerIds, teamCost, placePlayer, removePlayer, draftProblems, toSubmitPayload } from "../domain/draftRules.js";
 
-let selectedPhaseId = null; // huskes mellem besøg på fanen
+// Huskes mellem besøg på fanen
+let selectedPhaseId = null;
+let isRulesOpen = false;          // "Sådan får du point" er lukket, indtil brugeren selv åbner den
+let currentState = null;          // bruges til at advare om ændringer, der ikke er gemt
+
+export const hasUnsavedChanges = () => Boolean(currentState?.hasUnsavedChanges);
 
 export async function render(root, context) {
   const phase = selectPhase(context.phases);
@@ -13,6 +18,7 @@ export async function render(root, context) {
     api.fetchPlayerCards(phase.id), api.fetchMyTeams(phase.id, context.user.id),
   ]);
   const state = createState(phase, cards, savedTeams);
+  currentState = state;
   const redraw = () => draw(root, context, state, redraw);
   redraw();
 }
@@ -33,21 +39,44 @@ function createState(phase, cards, savedTeams) {
     openProTeamId: proTeams[0]?.pro_team_id,
     teams: teamsFromSaved(savedTeams, phase),
     isEditable: phaseState(phase) === PHASE_STATE.OPEN,
-    message: savedTeams.length ? `<span class="muted">Gemt tidligere. Du kan ændre indtil ${formatDayTime(phase.locks_at)}.</span>` : "",
+    hasUnsavedChanges: false,
+    message: savedTeams.length ? `<span class="muted">Gemt. Du kan ændre indtil ${formatDayTime(phase.locks_at)}.</span>` : "",
   };
+}
+
+function markChanged(state) {
+  state.hasUnsavedChanges = true;
+  state.message = `<span class="unsaved">Ikke gemt endnu – tryk Lock in for at gemme.</span>`;
+}
+
+function showMessage(root, state) {
+  const status = root.querySelector(".lock-bar [role=status]");
+  if (status) status.innerHTML = state.message;
 }
 
 // ---------- Tegning ----------
 function draw(root, context, state, redraw) {
+  const focusSelector = focusedElementSelector(root);
   root.innerHTML = [
     phaseTabsHtml(context.phases, state.phase),
     headingHtml(state),
-    explanationHtml(state.phase),
+    rulesHtml(state.phase),
     state.cards.length ? teamPickerHtml(state) : emptyBox(`Holdene til ${PHASE_NAME[state.phase.kind]} er ikke kendt endnu.`),
     myTeamsHtml(state),
     state.isEditable ? lockBarHtml(state) : "",
   ].join("");
   bindEvents(root, context, state, redraw);
+  if (focusSelector) root.querySelector(focusSelector)?.focus();
+}
+
+// Tastaturbrugere skal blive, hvor de var, når siden tegnes om efter et valg
+function focusedElementSelector(root) {
+  const element = document.activeElement;
+  if (!root.contains(element) || element === root) return null;
+  if (element.matches(".team-players .card")) return `.team-players .card[data-id="${element.dataset.id}"]`;
+  if (element.matches(".team-chip")) return `.team-chip[data-pro-team-id="${element.dataset.proTeamId}"]`;
+  if (element.matches(".remove-player")) return `.role-slot[data-slot="${element.dataset.slot}"][data-role="${element.dataset.role}"]`;
+  return element.id ? `#${element.id}` : null;
 }
 
 function phaseTabsHtml(phases, selectedPhase) {
@@ -65,11 +94,12 @@ function headingHtml({ phase, isEditable }) {
     <h2>${isTwoTeamPhase(phase) ? "Byg dine to hold" : "Byg dit hold"}</h2></div>`;
 }
 
-function explanationHtml(phase) {
-  const rules = phase.budget
+// Valgfri forklaring: lukket som standard, og den forbliver som brugeren efterlod den
+function rulesHtml(phase) {
+  const teamRules = phase.budget
     ? `Budget <b>${phase.budget}</b> pr. hold. Én spiller pr. rolle. Højst <b>${phase.max_per_team} spillere fra samme prohold</b>${isTwoTeamPhase(phase) ? " på tværs af begge hold. En spiller kan ikke være på begge hold" : ""}.`
     : "Fri leg: intet budget og ingen grænse pr. prohold. Én spiller pr. rolle.";
-  return `<details class="rules-toggle" open><summary>Sådan får du point</summary><div class="rules-explained">
+  return `<details class="rules-toggle" ${isRulesOpen ? "open" : ""}><summary>Sådan får du point (valgfrit at læse)</summary><div class="rules-explained">
     <div><h3>Point pr. kamp</h3>
       <p>En spiller får <b>omkring 20 point</b> i en gennemsnitlig kamp for sin rolle. Bedre end rollens snit giver flere, dårligere giver færre.</p>
       <p class="formula">20 + 10 × præstation + MVP/ACE</p>
@@ -80,8 +110,12 @@ function explanationHtml(phase) {
       <p>Din score er summen af alle dine hold: Play-In, Swiss A, Swiss B, kvartfinale, semifinale og finale.</p></div>
     <div><h3>Priser og regler</h3>
       <p>Swiss: Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale og semifinale: <b>23</b> / <b>17</b>. Finalen er fri.</p>
-      <p>${rules}</p>
+      <p>${teamRules}</p>
       <p>Kun startspillere kan vælges. "Lock in" gemmer; du kan ændre indtil fristen.</p></div>
+    <div><h3>Hvorfor har holdene forskellige priser?</h3>
+      <p>Prisen er en vurdering af holdets styrke <b>før</b> fasen, ikke af den enkelte spiller.</p>
+      <p>Prisklassen følger holdets placering i <b>lolesports' Global Power Rankings</b>, når draften åbner. Højest placeret er dyrest.</p>
+      <p>Hvert holds begrundelse står, når du vælger holdet. Underdogs er billige, men kan score lige så mange point.</p></div>
   </div></details>`;
 }
 
@@ -91,8 +125,8 @@ function teamPickerHtml(state) {
   const cardsOfTeam = state.cards.filter((card) => card.pro_team_id === state.openProTeamId)
     .sort((a, b) => a.role_order - b.role_order);
   const hint = state.isEditable
-    ? `Træk et kort til en rolle, eller klik for at sætte det på det første hold${isTwoTeamPhase(state.phase) ? " (shift+klik: andet hold)" : ""}`
-    : "Draften er ikke åben";
+    ? `Træk et kort til en rolle, eller tryk på det (Enter) for at sætte det på ${isTwoTeamPhase(state.phase) ? "hold A. Shift+klik eller Shift+Enter sætter det på hold B" : "dit hold"}.`
+    : "Draften er ikke åben.";
   const chips = state.proTeams.map((team) => {
     const tier = team.tier_code ? `${priceTierOf(team.tier_code).label} · ${team.price}` : "Fri";
     return `<button class="team-chip" aria-pressed="${team.pro_team_id === state.openProTeamId}" data-pro-team-id="${team.pro_team_id}">
@@ -100,12 +134,16 @@ function teamPickerHtml(state) {
       <span class="team-code">${escapeHtml(team.team_code)}</span><span class="team-price">${tier}</span></button>`;
   }).join("");
   const cards = cardsOfTeam.map((card) => {
-    const isAvailable = state.isEditable && !used.has(card.player_id);
-    return playerCard(card, `draggable="${isAvailable}" aria-disabled="${!isAvailable}"`);
+    const isOnTeam = used.has(card.player_id);
+    const isAvailable = state.isEditable && !isOnTeam;
+    const onTeamAttribute = isOnTeam ? ' data-on-team="true"' : "";
+    return playerCard(card, `draggable="${isAvailable}" aria-disabled="${!isAvailable}"${onTeamAttribute}`, isOnTeam ? "Valgt" : "");
   }).join("");
+  const tierLabel = openTeam?.tier_code ? `${priceTierOf(openTeam.tier_code).label} · ${openTeam.price}` : "Fri leg";
   return `<div class="panel"><h3>Hold efter power ranking</h3>
     <div class="team-chips" role="group" aria-label="Vælg hold">${chips}</div>
-    <div class="team-players"><header><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")}</h3>
+    <div class="team-players"><header><div><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")} · ${tierLabel}</h3>
+      ${openTeam?.price_reason ? `<p class="price-reason">${escapeHtml(openTeam.price_reason)}</p>` : ""}</div>
       <span class="muted small">${hint}</span></header>
       <div class="cards">${cards}</div></div></div>`;
 }
@@ -121,9 +159,10 @@ function myTeamHtml(state, team) {
   const slots = ROLES.map((role) => {
     const card = cardsById.get(team.picks[role]);
     const content = card
-      ? playerCard(card, isEditable ? 'title="Klik for at fjerne"' : "")
-      : `<span>${ROLE_NAME[role]}</span>${isEditable ? '<span style="font-size:10px">træk spiller hertil</span>' : ""}`;
-    return `<div class="role-slot" data-slot="${team.slot}" data-role="${role}">${content}</div>`;
+      ? playerCard(card, 'tabindex="-1"')
+        + (isEditable ? `<button class="remove-player" data-slot="${team.slot}" data-role="${role}" aria-label="Fjern ${escapeHtml(card.handle)} fra ${ROLE_NAME[role]}">Fjern</button>` : "")
+      : `<span>${ROLE_NAME[role]}</span>${isEditable ? '<span class="slot-hint">træk spiller hertil</span>' : ""}`;
+    return `<div class="role-slot" data-slot="${team.slot}" data-role="${role}" role="group" tabindex="-1" aria-label="${ROLE_NAME[role]}">${content}</div>`;
   }).join("");
   return `<div class="my-team"><header>
       <label for="team-name-${team.slot}" style="gap:4px">${label}
@@ -136,7 +175,7 @@ function budgetHtml(phase, cost) {
   if (!phase.budget) return `<div class="budget">Fri leg · intet budget</div>`;
   const percent = Math.min(100, (cost / phase.budget) * 100);
   return `<div class="budget"><span><b class="number" style="color:var(--fg)">${cost}</b> / ${phase.budget} brugt</span>
-    <div class="bar ${cost > phase.budget ? "over-budget" : ""}"><i style="width:${percent}%"></i></div></div>`;
+    <div class="bar ${cost > phase.budget ? "over-budget" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="${phase.budget}" aria-valuenow="${cost}" aria-label="Budget brugt"><i style="width:${percent}%"></i></div></div>`;
 }
 
 function lockBarHtml(state) {
@@ -145,21 +184,31 @@ function lockBarHtml(state) {
     ? problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")
     : `<span class="rule-ok">Alt er klar</span>`;
   const buttonText = isTwoTeamPhase(state.phase) ? "Lock in teams" : "Lock in team";
-  return `<div class="lock-bar"><div class="draft-rules">${rules}</div>
+  return `<div class="lock-bar"><div class="draft-rules" aria-live="polite">${rules}</div>
     <div class="row"><span role="status">${state.message}</span>
-    <button class="btn" id="lock-in" ${problems.length ? "disabled" : ""}>${buttonText}</button></div></div>`;
+    <button class="btn" id="lock-in" ${problems.length ? 'disabled aria-describedby="lock-in-why"' : ""}>${buttonText}</button>
+    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når alle roller er fyldt og reglerne er overholdt.</span>' : ""}</div></div>`;
 }
 
 // ---------- Hændelser ----------
 function bindEvents(root, context, state, redraw) {
+  root.querySelector(".rules-toggle").addEventListener("toggle", (event) => { isRulesOpen = event.target.open; });
   root.querySelectorAll(".phase-tab").forEach((button) => {
-    button.onclick = () => { selectedPhaseId = Number(button.dataset.phaseId); render(root, context); };
+    button.onclick = () => {
+      if (state.hasUnsavedChanges && !confirm("Du har ændringer, der ikke er gemt. Vil du skifte fase alligevel?")) return;
+      selectedPhaseId = Number(button.dataset.phaseId);
+      render(root, context);
+    };
   });
   root.querySelectorAll(".team-chip").forEach((button) => {
     button.onclick = () => { state.openProTeamId = Number(button.dataset.proTeamId); redraw(); };
   });
   root.querySelectorAll("input.team-name-input").forEach((input) => {
-    input.oninput = () => { state.teams[input.dataset.slot - 1].name = input.value; };
+    input.oninput = () => {
+      state.teams[input.dataset.slot - 1].name = input.value;
+      markChanged(state);
+      showMessage(root, state);   // uden at tegne om, så markøren bliver i feltet
+    };
   });
   if (!state.isEditable) return;
   bindCardEvents(root, state, redraw);
@@ -174,7 +223,7 @@ function targetSlot(state, event) {
 
 function addToTeam(state, playerId, slot, redraw) {
   if (placePlayer(state.teams, state.cardsById.get(playerId), slot)) {
-    state.message = "";
+    markChanged(state);
     redraw();
   }
 }
@@ -185,7 +234,10 @@ function bindCardEvents(root, state, redraw) {
     element.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", String(playerId)));
     element.addEventListener("click", (event) => addToTeam(state, playerId, targetSlot(state, event), redraw));
     element.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") addToTeam(state, playerId, targetSlot(state, event), redraw);
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        addToTeam(state, playerId, targetSlot(state, event), redraw);
+      }
     });
   });
 }
@@ -208,8 +260,13 @@ function bindSlotEvents(root, state, redraw) {
       }
       addToTeam(state, card.player_id, slot, redraw);
     });
-    const placedCard = slotElement.querySelector(".card");
-    if (placedCard) placedCard.onclick = () => { removePlayer(state.teams, slot, role); redraw(); };
+  });
+  root.querySelectorAll(".remove-player").forEach((button) => {
+    button.onclick = () => {
+      removePlayer(state.teams, Number(button.dataset.slot), button.dataset.role);
+      markChanged(state);
+      redraw();
+    };
   });
 }
 
@@ -218,8 +275,10 @@ function bindLockIn(root, state, redraw) {
   if (!button) return;
   button.onclick = async () => {
     button.disabled = true;
+    button.textContent = "Gemmer…";
     try {
       await api.submitDraft(state.phase.id, toSubmitPayload(state.teams));
+      state.hasUnsavedChanges = false;
       state.message = `<span class="success">Gemt. Du kan ændre indtil ${formatDayTime(state.phase.locks_at)}.</span>`;
     } catch (error) {
       state.message = errorBox(error.message);

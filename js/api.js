@@ -73,28 +73,15 @@ export async function submitDraft(phaseId, teams) {
   dataOrThrow(await supabase.rpc("submit_draft", { p_phase_id: phaseId, p_teams: teams }));
 }
 
-// ---------- Ligaer og leaderboard ----------
-export async function fetchMyLeagues() {
-  return dataOrThrow(await supabase.from("league").select("id, name, invite_code, owner_id").order("id"));
+// ---------- Leaderboard ----------
+// Stillingen for alle brugere. Uden tidspunkt gives stillingen lige nu.
+export async function fetchStandings(at) {
+  return dataOrThrow(await supabase.rpc("standings", at ? { p_at: at } : {}));
 }
 
-export async function createLeague(name) {
-  return dataOrThrow(await supabase.rpc("create_league", { p_name: name }));
-}
-
-export async function joinLeague(inviteCode) {
-  return dataOrThrow(await supabase.rpc("join_league", { p_invite_code: inviteCode }));
-}
-
-// Uden tidspunkt gives stillingen lige nu
-export async function fetchStandings(leagueId, at) {
-  const parameters = { p_league_id: leagueId };
-  if (at) parameters.p_at = at;
-  return dataOrThrow(await supabase.rpc("league_standings", parameters));
-}
-
-// ---------- Mine hold ----------
-export async function fetchMyPickPoints(userId) {
+// ---------- Hold og point ----------
+// Andre brugeres hold kan kun læses, når fasen er låst (RLS)
+export async function fetchPickPoints(userId) {
   return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("*").eq("user_id", userId));
 }
 

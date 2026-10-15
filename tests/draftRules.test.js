@@ -17,9 +17,16 @@ const cards = [
 const cardsById = new Map(cards.map((item) => [item.player_id, item]));
 const byId = (id) => cardsById.get(id);
 
-test("tomme hold får standardnavne efter fasen", () => {
-  assert.deepEqual(teamsFromSaved([], swissPhase).map((team) => team.name), ["Hold A", "Hold B"]);
-  assert.deepEqual(teamsFromSaved([], playInPhase).map((team) => team.name), ["Mit hold"]);
+test("nye hold starter uden navn", () => {
+  assert.deepEqual(teamsFromSaved([], swissPhase).map((team) => team.name), ["", ""]);
+  assert.deepEqual(teamsFromSaved([], playInPhase).map((team) => team.name), [""]);
+});
+
+test("et hold uden navn kan ikke gemmes", () => {
+  const teams = teamsFromSaved([], swissPhase);
+  teams[0].name = "Baron Bandits";
+  const texts = draftProblems(teams, cardsById, swissPhase).map((problem) => problem.text);
+  assert.equal(texts[0], "Hold B mangler et navn");
 });
 
 test("gemte valg læses ind på rollerne", () => {
@@ -53,26 +60,30 @@ test("pris lægges sammen, og fjernede spillere tæller ikke", () => {
 
 test("manglende roller er info, ikke et regelbrud", () => {
   const teams = teamsFromSaved([], playInPhase);
+  teams[0].name = "Baron Bandits";
   placePlayer(teams, byId(6), 1);
   const problems = draftProblems(teams, cardsById, playInPhase);
-  assert.deepEqual(problems, [{ isRuleBroken: false, text: "Mit hold: 4 roller mangler" }]);
+  assert.deepEqual(problems, [{ isRuleBroken: false, text: "Dit hold: 4 roller mangler" }]);
 });
 
 test("over budget og for mange fra samme hold er regelbrud", () => {
   const teams = teamsFromSaved([], playInPhase);
+  teams[0].name = "Baron Bandits";
   [1, 2, 3, 4, 5].forEach((id) => placePlayer(teams, byId(id), 1)); // 3 KC + 2 C9 = 122
   const texts = draftProblems(teams, cardsById, playInPhase).map((problem) => problem.text);
-  assert.deepEqual(texts, ["Mit hold er 22 over budget", "3 spillere fra KC (højst 2)"]);
+  assert.deepEqual(texts, ["Dit hold er 22 over budget", "3 spillere fra KC (højst 2)"]);
 });
 
 test("et gyldigt hold har ingen problemer", () => {
   const teams = teamsFromSaved([], playInPhase);
+  teams[0].name = "Baron Bandits";
   [1, 7, 8, 4, 10].forEach((id) => placePlayer(teams, byId(id), 1)); // 26+14+18+22+14 = 94
   assert.deepEqual(draftProblems(teams, cardsById, playInPhase), []);
 });
 
 test("finalen har hverken budget eller holdgrænse", () => {
   const teams = teamsFromSaved([], finalPhase);
+  teams[0].name = "Baron Bandits";
   [1, 2, 3, 4, 5].forEach((id) => placePlayer(teams, byId(id), 1));
   assert.deepEqual(draftProblems(teams, cardsById, finalPhase), []);
 });

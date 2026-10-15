@@ -175,6 +175,7 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Højst 2 fra samme prohold** (3 i semifinalen; i Swiss talt på tværs af begge hold) | Forhindrer at man bare stabler favoritholdet. Semifinalen har kun fire hold, så grænsen hæves. | Ingen grænse. |
 | **En spiller kan ikke stå på begge Swiss-hold** | De to hold skal være reelle alternativer. | Overlap tilladt. |
 | **Kun startspillere** | En reserve, der aldrig kommer i kamp, ville give 0 point og føles som en fælde. | Hele rosteren inklusive reserver. |
+| **Holdet skal have et navn** (fra Swiss) | Holdnavnet er en del af det sociale i spillet og vises på leaderboardet. Feltet starter tomt med teksten "Navngiv dit hold", og Lock in er låst, indtil holdet har et navn. | Standardnavnet "Mit hold". |
 | **Lock in gemmer, men kan ændres indtil fristen** | En for tidlig fejl skal ikke straffe. Fristen er første kamp i fasen. | Lock in er endelig. |
 | **Andres hold kan først ses efter fristen** | Ingen kan kopiere en vens hold. | Åbne hold. |
 

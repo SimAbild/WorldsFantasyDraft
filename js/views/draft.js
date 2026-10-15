@@ -102,6 +102,7 @@ function rulesHtml(phase) {
   return `<details class="rules-toggle" ${isRulesOpen ? "open" : ""}><summary>Sådan får du point (valgfrit at læse)</summary><div class="rules-explained">
     <div><h3>Point pr. kamp</h3>
       <p>En spiller får <b>omkring 20 point</b> i en gennemsnitlig kamp for sin rolle. Bedre end rollens snit giver flere, dårligere giver færre.</p>
+      <p>Rollens snit er regnet ud fra <b>Worlds 2025</b> og ændrer sig ikke under turneringen. En kamp giver derfor de samme point i dag som efter finalen.</p>
       <p class="formula">20 + 10 × præstation + MVP/ACE</p>
       <p>Bedste spiller på vinderholdet og bedste på taberholdet får <b>+3</b>. En stærk spiller på et tabende hold kan slå en svag spiller på vinderholdet.</p></div>
     <div><h3>Fra kamp til fase</h3>
@@ -166,7 +167,7 @@ function myTeamHtml(state, team) {
   }).join("");
   return `<div class="my-team"><header>
       <label for="team-name-${team.slot}" style="gap:4px">${label}
-        <input class="team-name-input" id="team-name-${team.slot}" data-slot="${team.slot}" maxlength="30" value="${escapeHtml(team.name)}" ${isEditable ? "" : "disabled"}></label>
+        <input class="team-name-input" id="team-name-${team.slot}" data-slot="${team.slot}" maxlength="30" placeholder="Navngiv dit hold" required aria-required="true" value="${escapeHtml(team.name)}" ${isEditable ? "" : "disabled"}></label>
       ${budgetHtml(phase, teamCost(team, cardsById))}
     </header><div class="role-slots">${slots}</div></div>`;
 }

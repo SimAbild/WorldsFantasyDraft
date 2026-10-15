@@ -10,12 +10,13 @@ export function teamsFromSaved(savedTeams, phase) {
     const saved = savedTeams.find((team) => team.slot === slot);
     const picks = {};
     saved?.fantasy_pick.forEach((pick) => { picks[pick.role_code] = pick.player_id; });
-    return { slot, name: saved?.name ?? defaultTeamName(phase, slot), picks };
+    return { slot, name: saved?.name ?? "", picks };   // nye hold starter uden navn – brugeren skal navngive dem
   });
 }
 
-function defaultTeamName(phase, slot) {
-  return isTwoTeamPhase(phase) ? `Hold ${teamLetter(slot)}` : "Mit hold";
+// Holdets betegnelse i beskeder, uafhængigt af det navn brugeren skriver
+function teamLabel(teams, team) {
+  return teams.length === 2 ? `Hold ${teamLetter(team.slot)}` : "Dit hold";
 }
 
 export function usedPlayerIds(teams) {
@@ -41,17 +42,24 @@ export function removePlayer(teams, slot, roleCode) {
 // isRuleBroken: false = noget mangler endnu, true = en regel er brudt (fx over budget).
 export function draftProblems(teams, cardsById, phase) {
   return [
+    ...missingNameProblems(teams),
     ...missingRoleProblems(teams),
     ...budgetProblems(teams, cardsById, phase),
     ...teamLimitProblems(teams, cardsById, phase),
   ];
 }
 
+function missingNameProblems(teams) {
+  return teams
+    .filter((team) => !team.name.trim())
+    .map((team) => ({ isRuleBroken: false, text: `${teamLabel(teams, team)} mangler et navn` }));
+}
+
 function missingRoleProblems(teams) {
   return teams
     .map((team) => ({ team, missing: ROLES.filter((role) => !team.picks[role]).length }))
     .filter(({ missing }) => missing > 0)
-    .map(({ team, missing }) => ({ isRuleBroken: false, text: `${team.name}: ${missing} roller mangler` }));
+    .map(({ team, missing }) => ({ isRuleBroken: false, text: `${teamLabel(teams, team)}: ${missing} roller mangler` }));
 }
 
 function budgetProblems(teams, cardsById, phase) {
@@ -59,7 +67,7 @@ function budgetProblems(teams, cardsById, phase) {
   return teams
     .map((team) => ({ team, overBy: teamCost(team, cardsById) - phase.budget }))
     .filter(({ overBy }) => overBy > 0)
-    .map(({ team, overBy }) => ({ isRuleBroken: true, text: `${team.name} er ${overBy} over budget` }));
+    .map(({ team, overBy }) => ({ isRuleBroken: true, text: `${teamLabel(teams, team)} er ${overBy} over budget` }));
 }
 
 function teamLimitProblems(teams, cardsById, phase) {

@@ -117,6 +117,14 @@ function rulesHtml(phase) {
       <p>Prisen er en vurdering af holdets styrke <b>før</b> fasen, ikke af den enkelte spiller.</p>
       <p>Prisklassen følger holdets placering i <b>lolesports' Global Power Rankings</b>, når draften åbner. Højest placeret er dyrest.</p>
       <p>Hvert holds begrundelse står, når du vælger holdet. Underdogs er billige, men kan score lige så mange point.</p></div>
+    <div class="roles-explained"><h3>Point pr. rolle</h3>
+      <p>Alle roller giver <b>i snit lige mange point</b>. Forskellen er, hvad de får point for.</p>
+      <p><b>Top:</b> kills og CS/min vejer tungest, plus skade og en stor andel af holdets kills.</p>
+      <p><b>Jungle:</b> kills, assists, kill participation og ødelagte wards. Tillæg når holdet tager drage (<b>+0,5</b>), elder (<b>+1</b>) og baron (<b>+1</b>). CS og skade tæller ikke.</p>
+      <p><b>Mid:</b> kills, CS/min og skade, plus andel af holdets kills.</p>
+      <p><b>ADC:</b> kills, CS/min, skade og killandel vejer tungest. Deaths koster mest af alle roller.</p>
+      <p><b>Support:</b> assists, kills, kill participation og wards (placeret og ødelagt). Deaths koster mindst. CS og skade tæller ikke.</p>
+      <p>Alle undtagen support får <b>+2</b> for 10+ kills eller assists i en kamp. En sejr giver lidt ekstra.</p></div>
   </div></details>`;
 }
 

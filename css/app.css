@@ -84,6 +84,7 @@ details.rules-toggle summary{cursor:pointer;font-family:var(--display);font-size
 .rules-explained>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
 .rules-explained p{font-size:14px;color:var(--muted)}
 .rules-explained p b{color:var(--fg);font-weight:600}
+.rules-explained>.roles-explained{grid-column:1/-1}
 .formula{font-family:var(--mono);font-size:13px;color:var(--accent)!important}
 
 /* hold og kort */

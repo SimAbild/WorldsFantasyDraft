@@ -12,8 +12,10 @@ export function phaseTeamsHtml(phase, phasePicks, seriesPoints = []) {
   const slots = [...new Set(phasePicks.map((pick) => pick.slot))].sort();
   const teams = slots.map((slot) =>
     teamHtml(slot, slots.length, phasePicks.filter((pick) => pick.slot === slot), seriesPoints)).join("");
+  // Ved to hold (Swiss) vises A + B samlet, så man kan se fasens bidrag til totalen
+  const phaseTotal = slots.length === 2 ? ` · ${sumPoints(phasePicks).toFixed(1)} point i alt` : "";
   return `<section aria-label="${PHASE_NAME[phase.kind]}">
-    <div class="stage">${PHASE_NAME[phase.kind]} · ${PHASE_STATE_NAME[phaseState(phase)]}</div>
+    <div class="stage">${PHASE_NAME[phase.kind]} · ${PHASE_STATE_NAME[phaseState(phase)]}${phaseTotal}</div>
     <div class="my-teams ${slots.length === 1 ? "single" : ""}">${teams}</div></section>`;
 }
 

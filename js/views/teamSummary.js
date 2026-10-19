@@ -1,7 +1,7 @@
 // Ansvar: Viser et brugerhold med spillere og point. Bruges af Mine hold og af leaderboardets visning af andres hold.
 import { escapeHtml, avatar, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME } from "../ui.js";
 import { ROLES } from "../domain/roles.js";
-import { phaseState, teamLetter } from "../domain/phase.js";
+import { phaseState, teamLetter, PHASE_STATE } from "../domain/phase.js";
 
 const BAR_MINIMUM_SCALE = 30; // point, så søjlerne ikke fylder hele bredden ved lave tal
 
@@ -12,11 +12,13 @@ export function phaseTeamsHtml(phase, phasePicks, seriesPoints = []) {
   const slots = [...new Set(phasePicks.map((pick) => pick.slot))].sort();
   const teams = slots.map((slot) =>
     teamHtml(slot, slots.length, phasePicks.filter((pick) => pick.slot === slot), seriesPoints)).join("");
-  // Ved to hold (Swiss) vises A + B samlet, så man kan se fasens bidrag til totalen
-  const phaseTotal = slots.length === 2 ? ` · ${sumPoints(phasePicks).toFixed(1)} point i alt` : "";
-  return `<section aria-label="${PHASE_NAME[phase.kind]}">
-    <div class="stage">${PHASE_NAME[phase.kind]} · ${PHASE_STATE_NAME[phaseState(phase)]}${phaseTotal}</div>
-    <div class="my-teams ${slots.length === 1 ? "single" : ""}">${teams}</div></section>`;
+  // Fasens samlede point står i overskriften, så de kan ses, selvom fasen er foldet sammen
+  const phaseTotal = ` · ${sumPoints(phasePicks).toFixed(1)} point${slots.length === 2 ? " i alt" : ""}`;
+  // Afsluttede faser er foldet sammen; den aktuelle og kommende faser er foldet ud
+  const isDone = phaseState(phase) === PHASE_STATE.DONE;
+  return `<details class="phase-teams" ${isDone ? "" : "open"}>
+    <summary class="stage">${PHASE_NAME[phase.kind]} · ${PHASE_STATE_NAME[phaseState(phase)]}${phaseTotal}</summary>
+    <div class="my-teams ${slots.length === 1 ? "single" : ""}">${teams}</div></details>`;
 }
 
 function teamHtml(slot, teamCount, teamPicks, seriesPoints) {

@@ -34,6 +34,13 @@ export function placePlayer(teams, card, slot) {
   return true;
 }
 
+// Hvilket hold et klik sætter spilleren på: A, medmindre rollen er optaget dér og ledig på B
+export function slotForCard(teams, card) {
+  const isFree = (team) => team && !team.picks[card.role_code];
+  if (isFree(teams[0])) return 1;
+  return isFree(teams[1]) ? 2 : 1;
+}
+
 export function removePlayer(teams, slot, roleCode) {
   delete teams[slot - 1].picks[roleCode];
 }

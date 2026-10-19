@@ -3,7 +3,7 @@ import * as api from "../api.js";
 import { escapeHtml, playerCard, formatDayTime, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME, priceTierOf, errorBox, emptyBox } from "../ui.js";
 import { ROLES } from "../domain/roles.js";
 import { phaseState, defaultDraftPhase, isTwoTeamPhase, teamLetter, PHASE_STATE } from "../domain/phase.js";
-import { teamsFromSaved, usedPlayerIds, teamCost, placePlayer, removePlayer, draftProblems, toSubmitPayload } from "../domain/draftRules.js";
+import { teamsFromSaved, usedPlayerIds, teamCost, placePlayer, slotForCard, removePlayer, draftProblems, toSubmitPayload } from "../domain/draftRules.js";
 
 // Huskes mellem besøg på fanen
 let selectedPhaseId = null;
@@ -57,6 +57,9 @@ function showMessage(root, state) {
 // ---------- Tegning ----------
 function draw(root, context, state, redraw) {
   const focusSelector = focusedElementSelector(root);
+  // Siden og holdrækken skal blive stående, hvor brugeren havde scrollet hen
+  const pageScroll = window.scrollY;
+  const chipsScroll = root.querySelector(".team-chips")?.scrollLeft ?? 0;
   root.innerHTML = [
     phaseTabsHtml(context.phases, state.phase),
     headingHtml(state),
@@ -66,7 +69,10 @@ function draw(root, context, state, redraw) {
     state.isEditable ? lockBarHtml(state) : "",
   ].join("");
   bindEvents(root, context, state, redraw);
-  if (focusSelector) root.querySelector(focusSelector)?.focus();
+  const chips = root.querySelector(".team-chips");
+  if (chips) chips.scrollLeft = chipsScroll;
+  if (focusSelector) root.querySelector(focusSelector)?.focus({ preventScroll: true });
+  window.scrollTo(0, pageScroll);
 }
 
 // Tastaturbrugere skal blive, hvor de var, når siden tegnes om efter et valg
@@ -134,7 +140,7 @@ function teamPickerHtml(state) {
   const cardsOfTeam = state.cards.filter((card) => card.pro_team_id === state.openProTeamId)
     .sort((a, b) => a.role_order - b.role_order);
   const hint = state.isEditable
-    ? `Træk et kort til en rolle, eller tryk på det (Enter) for at sætte det på ${isTwoTeamPhase(state.phase) ? "hold A. Shift+klik eller Shift+Enter sætter det på hold B" : "dit hold"}.`
+    ? `Træk et kort til en rolle, eller tryk på det (Enter) for at sætte det på ${isTwoTeamPhase(state.phase) ? "hold A. Er rollen optaget på A, kommer det på hold B. Shift+klik eller Shift+Enter sætter det altid på hold B" : "dit hold"}.`
     : "Draften er ikke åben.";
   const chips = state.proTeams.map((team) => {
     const tier = team.tier_code ? `${priceTierOf(team.tier_code).label} · ${team.price}` : "Fri";
@@ -225,9 +231,10 @@ function bindEvents(root, context, state, redraw) {
   bindLockIn(root, state, redraw);
 }
 
-// Klik sætter kortet på hold A; shift+klik på hold B (kun i Swiss)
-function targetSlot(state, event) {
-  return event.shiftKey && isTwoTeamPhase(state.phase) ? 2 : 1;
+// Klik sætter kortet på hold A, eller B hvis rollen er optaget på A; shift+klik altid på hold B (kun i Swiss)
+function targetSlot(state, event, playerId) {
+  if (event.shiftKey && isTwoTeamPhase(state.phase)) return 2;
+  return slotForCard(state.teams, state.cardsById.get(playerId));
 }
 
 function addToTeam(state, playerId, slot, redraw) {
@@ -241,11 +248,11 @@ function bindCardEvents(root, state, redraw) {
   root.querySelectorAll(".team-players .card").forEach((element) => {
     const playerId = Number(element.dataset.id);
     element.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", String(playerId)));
-    element.addEventListener("click", (event) => addToTeam(state, playerId, targetSlot(state, event), redraw));
+    element.addEventListener("click", (event) => addToTeam(state, playerId, targetSlot(state, event, playerId), redraw));
     element.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        addToTeam(state, playerId, targetSlot(state, event), redraw);
+        addToTeam(state, playerId, targetSlot(state, event, playerId), redraw);
       }
     });
   });

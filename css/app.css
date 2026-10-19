@@ -189,6 +189,12 @@ details.rules-toggle summary{min-height:32px;display:flex;align-items:center}
 /* ---------- Leaderboard ---------- */
 .user-link{background:none;border:0;padding:4px 0;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.03em;color:var(--fg);text-decoration:underline;text-decoration-color:var(--control-border);text-underline-offset:4px;cursor:pointer}
 .user-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+
+/* ---------- Faser på Mine hold og i popup'en ---------- */
+.phase-teams > summary{cursor:pointer;min-height:32px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.phase-teams > summary::before{content:"▸";transition:transform .15s}
+.phase-teams[open] > summary::before{transform:rotate(90deg)}
+.phase-teams > summary::-webkit-details-marker{display:none}
 dialog{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:10px;width:min(1100px,94vw);max-height:90vh;padding:0}
 dialog::backdrop{background:rgba(0,0,0,.72)}
 .dialog-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}

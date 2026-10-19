@@ -126,8 +126,12 @@ details.rules-toggle summary{cursor:pointer;font-family:var(--display);font-size
 .role-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .role-slot{min-height:150px;border:1.5px dashed var(--control-border);border-radius:10px;display:grid;place-items:center;align-content:center;gap:4px;padding:6px;text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg);min-width:0}
 .role-slot.drag-over{border-color:var(--accent)}
-.role-slot .card{width:100%;cursor:pointer}
-.role-slot .card .name{font-size:16px}
+.role-slot{justify-items:stretch}
+/* Kompakte kort i rollerne: højden følger indholdet, og kortet kan ikke blive bredere end feltet */
+.role-slot .card{width:100%;min-width:0;aspect-ratio:auto;padding:8px 6px;gap:4px;cursor:pointer}
+.role-slot .card .price small{display:none}
+.role-slot .card .role{font-size:10px}
+.role-slot .card .name{font-size:16px;min-width:0}
 .role-slot .card .price{font-size:22px}
 .role-slot .card .face span{width:40px;height:40px;font-size:16px}
 .draft-rules{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}

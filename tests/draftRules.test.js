@@ -1,7 +1,7 @@
 // Ansvar: Tester draft-reglerne på klientsiden
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { teamsFromSaved, teamCost, placePlayer, removePlayer, draftProblems, toSubmitPayload } from "../js/domain/draftRules.js";
+import { teamsFromSaved, teamCost, placePlayer, slotForCard, removePlayer, draftProblems, toSubmitPayload } from "../js/domain/draftRules.js";
 
 const swissPhase = { teams_per_user: 2, budget: 100, max_per_team: 2 };
 const playInPhase = { teams_per_user: 1, budget: 100, max_per_team: 2 };
@@ -92,4 +92,28 @@ test("payload har alle fem roller i fast rækkefølge", () => {
   const teams = teamsFromSaved([], playInPhase);
   [1, 7, 8, 4, 10].forEach((id) => placePlayer(teams, byId(id), 1));
   assert.deepEqual(toSubmitPayload(teams)[0].picks.map((pick) => pick.role), ["top", "jungle", "mid", "adc", "support"]);
+});
+
+test("et klik går til hold A, når rollen er ledig dér", () => {
+  const teams = teamsFromSaved([], swissPhase);
+  assert.equal(slotForCard(teams, byId(1)), 1);
+});
+
+test("et klik går til hold B, når rollen er optaget på A", () => {
+  const teams = teamsFromSaved([], swissPhase);
+  placePlayer(teams, byId(1), 1);
+  assert.equal(slotForCard(teams, byId(6)), 2);
+});
+
+test("med ét hold går et klik altid til holdet", () => {
+  const teams = teamsFromSaved([], playInPhase);
+  placePlayer(teams, byId(1), 1);
+  assert.equal(slotForCard(teams, byId(6)), 1);
+});
+
+test("er rollen optaget på begge hold, går et klik til A", () => {
+  const teams = teamsFromSaved([], swissPhase);
+  placePlayer(teams, byId(1), 1);
+  placePlayer(teams, byId(6), 2);
+  assert.equal(slotForCard(teams, card(11, "top", "FUR", 18)), 1);
 });

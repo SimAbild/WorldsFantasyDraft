@@ -1,67 +1,73 @@
-// Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, og visning af andres hold
-import * as api from "../api.js";
-import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../ui.js";
+// Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, fasevindere og visning af andres hold
+import * as database from "../database.js";
+import { escapeHtml, formatDay, formatTime, errorBox, emptyBox, PHASE_NAME } from "../shared/displayText.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
-import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
+import { phaseWinners } from "../domain/phaseWinners.js";
+import { phaseTeamsHtml, picksInPhase, sumPoints } from "../shared/teamSummary.js";
 
 const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
 
-export async function render(root, context) {
-  const seriesRows = await api.fetchSeriesRows(context.phases.map((phase) => phase.id));
+export async function render(pageElement, appData) {
+  const phaseIds = appData.phases.map((phase) => phase.id);
+  const [seriesRows, phasePoints] = await Promise.all([database.fetchSeriesRows(phaseIds), database.fetchPhasePoints(phaseIds)]);
   const timeline = finishedSeriesInOrder(groupSeriesRows(seriesRows));
-  const state = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
-  await draw(root, context, state);
+  const standingsHistory = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
+  // Stillingen lige nu indeholder alle brugere, så den giver navnene til fasevinderne
+  const standingsNow = await standingsHistory.loadStandingsAt(timeline.length);
+  const usernameById = new Map(standingsNow.map((standing) => [standing.user_id, standing.username]));
+  const phaseWinnersPanel = phaseWinnersHtml(phaseWinners(appData.phases, phasePoints), usernameById, appData.user.id);
+  await drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel);
 }
 
 // Position 0 = før første kamp, position timeline.length = nu. Hver stilling hentes kun én gang.
 function createStandingsLoader(timeline) {
   const cache = new Map();
-  const timeAt = (position) => position >= timeline.length ? undefined
-    : position === 0 ? BEFORE_FIRST_GAME : timeline[position - 1].at;
   return (position) => {
-    if (!cache.has(position)) cache.set(position, api.fetchStandings(timeAt(position)));
+    if (!cache.has(position)) cache.set(position, database.fetchStandings(standingsTimeAt(timeline, position)));
     return cache.get(position);
   };
 }
 
-async function draw(root, context, state) {
-  const [standings, previousStandings] = await Promise.all([
-    state.loadStandingsAt(state.position), state.loadStandingsAt(Math.max(0, state.position - 1)),
-  ]);
-  root.innerHTML = headerHtml(state, standings.length)
-    + standingsTableHtml(standings, previousStandings, context.user.id)
-    + `<dialog id="user-teams" aria-labelledby="user-teams-title"></dialog>`;
-  bindEvents(root, context, state);
-  drawLeaderHistory(root, state);
+// Uden tidspunkt giver databasen stillingen lige nu
+function standingsTimeAt(timeline, position) {
+  if (position >= timeline.length) return undefined;
+  if (position === 0) return BEFORE_FIRST_GAME;
+  return timeline[position - 1].at;
 }
 
-function headerHtml(state, playerCount) {
-  const { timeline, position } = state;
-  const step = timeline[position - 1];
-  const stepText = step ? `${escapeHtml(step.label)} · ${formatDay(step.at)} ${formatTime(step.at)}` : "før første kamp";
+// phaseWinnersPanel følger ikke slideren; den viser altid fasevinderne lige nu
+async function drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel) {
+  const { position, loadStandingsAt } = standingsHistory;
+  const [standings, previousStandings] = await Promise.all([
+    loadStandingsAt(position), loadStandingsAt(Math.max(0, position - 1)),
+  ]);
+  pageElement.innerHTML = headerHtml(standingsHistory, standings.length)
+    + standingsTableHtml(standings, previousStandings, appData.user.id)
+    + phaseWinnersPanel
+    + `<dialog id="user-teams" aria-labelledby="user-teams-title"></dialog>`;
+  bindPageEvents(pageElement, appData, standingsHistory, phaseWinnersPanel);
+  drawLeaderHistory(pageElement, standingsHistory);
+}
+
+function headerHtml({ timeline, position }, userCount) {
+  const seriesAtPosition = timeline[position - 1];
+  const positionText = seriesAtPosition
+    ? `${escapeHtml(seriesAtPosition.label)} · ${formatDay(seriesAtPosition.at)} ${formatTime(seriesAtPosition.at)}`
+    : "før første kamp";
   const slider = timeline.length ? `<div class="slider">
-      <label for="standings-after">Stilling efter: <span>${stepText}</span></label>
+      <label for="standings-after">Stilling efter: <span>${positionText}</span></label>
       <input type="range" id="standings-after" min="0" max="${timeline.length}" value="${position}">
       <div class="leaders" id="leader-history" aria-label="Hvem førte efter hver serie"></div></div>` : "";
   return `<div class="page-header"><div><h2>Leaderboard</h2>
-    <p class="muted">${playerCount} spillere · tryk på et navn for at se holdene</p></div>${slider}</div>`;
+    <p class="muted">${userCount} spillere · tryk på et navn for at se holdene</p></div>${slider}</div>`;
 }
 
+// ---------- Stillingen ----------
 function standingsTableHtml(standings, previousStandings, currentUserId) {
-  const rows = standings.map((entry) => {
-    const previous = previousStandings.find((item) => item.user_id === entry.user_id);
-    const rankChange = previous ? previous.rank - entry.rank : 0;
-    const gain = previous ? (entry.points - previous.points).toFixed(1) : "0.0";
-    const changeText = rankChange > 0 ? `▲ ${rankChange}` : rankChange < 0 ? `▼ ${-rankChange}` : "–";
-    const changeLabel = rankChange > 0 ? `op ${rankChange}` : rankChange < 0 ? `ned ${-rankChange}` : "uændret";
-    const changeClass = rankChange > 0 ? "up" : rankChange < 0 ? "down" : "";
-    const isLeader = entry.rank === 1 && entry.points > 0;
-    const youLabel = entry.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
-    return `<tr class="${isLeader ? "leader" : ""}"><td class="rank-number">${entry.rank}</td>
-      <td><button class="user-link" data-user-id="${entry.user_id}" data-username="${escapeHtml(entry.username)}">${escapeHtml(entry.username)}</button>${youLabel}</td>
-      <td class="right number">${entry.points}</td><td class="right number">+${gain}</td>
-      <td class="right"><span class="rank-change ${changeClass}" aria-label="${changeLabel}">${changeText}</span></td></tr>`;
+  const rows = standings.map((standing) => {
+    const previousStanding = previousStandings.find((earlier) => earlier.user_id === standing.user_id);
+    return standingRowHtml(standing, previousStanding, currentUserId);
   }).join("");
   return `<div class="panel"><div class="table-scroll"><table>
     <caption class="visually-hidden">Stilling for alle brugere</caption>
@@ -69,48 +75,103 @@ function standingsTableHtml(standings, previousStandings, currentUserId) {
     </table></div><p class="muted small">Andres hold kan ses, når en fase er låst. Point opdateres efter hver kamp.</p></div>`;
 }
 
+function standingRowHtml(standing, previousStanding, currentUserId) {
+  const rankChange = rankChangeOf(standing, previousStanding);
+  const pointsChange = previousStanding ? standing.points - previousStanding.points : 0;
+  const isLeader = standing.rank === 1 && standing.points > 0;
+  const youLabel = standing.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
+  return `<tr class="${isLeader ? "leader" : ""}"><td class="rank-number">${standing.rank}</td>
+    <td><button class="user-link" data-user-id="${standing.user_id}" data-username="${escapeHtml(standing.username)}">${escapeHtml(standing.username)}</button>${youLabel}</td>
+    <td class="right number">${standing.points}</td><td class="right number">${signedPointsText(pointsChange)}</td>
+    <td class="right"><span class="rank-change ${rankChange.cssClass}" aria-label="${rankChange.label}">${rankChange.text}</span></td></tr>`;
+}
+
+// Point kan både stige og falde mellem to serier, fx "+5.2" eller "−1.4"
+function signedPointsText(pointsChange) {
+  const rounded = Number(pointsChange.toFixed(1));
+  return rounded < 0 ? `−${Math.abs(rounded).toFixed(1)}` : `+${rounded.toFixed(1)}`;
+}
+
+// Pladser rykket siden forrige serie: som pil-tekst, som tekst til skærmlæsere og som CSS-klasse
+function rankChangeOf(standing, previousStanding) {
+  const placesMoved = previousStanding ? previousStanding.rank - standing.rank : 0;
+  if (placesMoved > 0) return { text: `▲ ${placesMoved}`, label: `op ${placesMoved}`, cssClass: "up" };
+  if (placesMoved < 0) return { text: `▼ ${-placesMoved}`, label: `ned ${-placesMoved}`, cssClass: "down" };
+  return { text: "–", label: "uændret", cssClass: "" };
+}
+
+// ---------- Fasevindere ----------
+// Kun for at følge med: hvem scorede flest point i hver fase, uanset den samlede stilling
+function phaseWinnersHtml(phaseWinnerList, usernameById, currentUserId) {
+  const tableOrEmptyHtml = phaseWinnerList.length
+    ? `<div class="table-scroll"><table><caption class="visually-hidden">Vinder af hver fase</caption>
+      <tr><th scope="col">Fase</th><th scope="col">Vinder</th><th scope="col" class="right">Point</th></tr>
+      ${phaseWinnerList.map((phaseWinner) => phaseWinnerRowHtml(phaseWinner, usernameById, currentUserId)).join("")}</table></div>`
+    : emptyBox("Vinderne vises her, når den første fase er låst.");
+  return `<div class="panel"><h3>Fasevindere</h3>${tableOrEmptyHtml}
+    <p class="muted small">Flest point i fasen. I Swiss tæller begge hold.</p></div>`;
+}
+
+function phaseWinnerRowHtml({ phase, isDone, winnerIds, points }, usernameById, currentUserId) {
+  const status = isDone ? "Vinder" : "Fører nu";
+  const winnerNames = winnerIds.map((userId) => {
+    const youLabel = userId === currentUserId ? " (dig)" : "";
+    return `${escapeHtml(usernameById.get(userId) ?? "Ukendt")}${youLabel}`;
+  }).join(" og ");
+  const winnerText = winnerIds.length ? `<span class="muted small">${status}:</span> ${winnerNames}` : `<span class="muted">Ingen point endnu</span>`;
+  return `<tr><td>${PHASE_NAME[phase.kind]}</td><td>${winnerText}</td><td class="right number">${winnerIds.length ? points.toFixed(1) : "–"}</td></tr>`;
+}
+
 // Hvem førte efter hver af de seneste serier
-async function drawLeaderHistory(root, state) {
-  const container = root.querySelector("#leader-history");
-  if (!container) return;
-  const first = Math.max(1, state.timeline.length - LEADER_HISTORY_LENGTH + 1);
-  const positions = Array.from({ length: state.timeline.length - first + 1 }, (_, index) => first + index);
-  const allStandings = await Promise.all(positions.map(state.loadStandingsAt));
-  container.innerHTML = positions.map((position, index) => {
-    const leader = allStandings[index][0];
-    const label = escapeHtml(state.timeline[position - 1].label);
+async function drawLeaderHistory(pageElement, { timeline, position, loadStandingsAt }) {
+  const leaderHistoryElement = pageElement.querySelector("#leader-history");
+  if (!leaderHistoryElement) return;
+  const firstShownPosition = Math.max(1, timeline.length - LEADER_HISTORY_LENGTH + 1);
+  const shownPositions = Array.from({ length: timeline.length - firstShownPosition + 1 }, (_, index) => firstShownPosition + index);
+  const standingsPerPosition = await Promise.all(shownPositions.map((shownPosition) => loadStandingsAt(shownPosition)));
+  leaderHistoryElement.innerHTML = shownPositions.map((shownPosition, index) => {
+    const leader = standingsPerPosition[index][0];
+    const seriesLabel = escapeHtml(timeline[shownPosition - 1].label);
     const leaderName = leader && leader.points > 0 ? escapeHtml(leader.username) : "–";
-    return `<span class="${position === state.position ? "current" : ""}" title="${label}">${label}: ${leaderName}</span>`;
+    return `<span class="${shownPosition === position ? "current" : ""}" title="${seriesLabel}">${seriesLabel}: ${leaderName}</span>`;
   }).join("");
 }
 
-function bindEvents(root, context, state) {
-  const slider = root.querySelector("#standings-after");
-  if (slider) slider.onchange = () => { state.position = Number(slider.value); draw(root, context, state); };
-  root.querySelectorAll(".user-link").forEach((button) => {
-    button.onclick = () => openUserTeams(root, context, button.dataset.userId, button.dataset.username);
+function bindPageEvents(pageElement, appData, standingsHistory, phaseWinnersPanel) {
+  const slider = pageElement.querySelector("#standings-after");
+  if (slider) {
+    slider.onchange = () => {
+      standingsHistory.position = Number(slider.value);
+      drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel);
+    };
+  }
+  pageElement.querySelectorAll(".user-link").forEach((button) => {
+    button.onclick = () => openUserTeams(pageElement, appData, button.dataset.userId, button.dataset.username);
   });
 }
 
 // ---------- Andres hold ----------
-async function openUserTeams(root, context, userId, username) {
-  const dialog = root.querySelector("#user-teams");
+async function openUserTeams(pageElement, appData, userId, username) {
+  const dialog = pageElement.querySelector("#user-teams");
   dialog.innerHTML = userTeamsHtml(username, `<p class="muted">Henter…</p>`);
   dialog.showModal();
   try {
-    const picks = await api.fetchPickPoints(userId);
-    const phasesWithTeams = context.phases.filter((phase) => picks.some((pick) => pick.phase_id === phase.id));
-    const body = phasesWithTeams.length
-      ? `<p class="muted">I alt <b class="number">${sumPoints(picks).toFixed(1)}</b> point</p>`
-        + phasesWithTeams.map((phase) => phaseTeamsHtml(phase, picks.filter((pick) => pick.phase_id === phase.id))).join("")
-      : emptyBox(userId === context.user.id
-          ? "Du har ingen hold endnu."
-          : `${username}s hold vises her, når en fase er låst.`);
-    dialog.innerHTML = userTeamsHtml(username, body);
+    const picks = await database.fetchPickPoints(userId);
+    dialog.innerHTML = userTeamsHtml(username, userTeamsBodyHtml(appData, picks, userId, username));
   } catch (error) {
     dialog.innerHTML = userTeamsHtml(username, errorBox(error.message));
   }
   dialog.querySelector(".close-dialog").onclick = () => dialog.close();
+}
+
+// Andres hold kan først læses, når fasen er låst (RLS), så listen kan være tom
+function userTeamsBodyHtml(appData, picks, userId, username) {
+  const phasesWithTeams = appData.phases.filter((phase) => picksInPhase(picks, phase.id).length);
+  if (!phasesWithTeams.length) {
+    return emptyBox(userId === appData.user.id ? "Du har ingen hold endnu." : `${username}s hold vises her, når en fase er låst.`);
+  }
+  return `<p class="muted">I alt <b class="number">${sumPoints(picks).toFixed(1)}</b> point</p>`
+    + phasesWithTeams.map((phase) => phaseTeamsHtml(phase, picksInPhase(picks, phase.id))).join("");
 }
 
 function userTeamsHtml(username, body) {

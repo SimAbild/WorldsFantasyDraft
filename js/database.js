@@ -1,4 +1,4 @@
-// Ansvar: Al kommunikation med Supabase. Visningerne kender kun disse funktioner, aldrig databasen direkte.
+// Ansvar: Al kommunikation med databasen (Supabase). Siderne kender kun disse funktioner, aldrig databasen direkte.
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { SUPABASE_URL, SUPABASE_KEY, EMAIL_DOMAIN } from "./config.js";
 
@@ -83,6 +83,11 @@ export async function fetchStandings(at) {
 // Andre brugeres hold kan kun læses, når fasen er låst (RLS)
 export async function fetchPickPoints(userId) {
   return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("*").eq("user_id", userId));
+}
+
+// Alle brugeres point pr. valgt spiller i faserne; bruges til at finde fasevindere
+export async function fetchPhasePoints(phaseIds) {
+  return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("user_id, phase_id, points").in("phase_id", phaseIds));
 }
 
 export async function fetchSeriesPoints(phaseId, playerIds) {

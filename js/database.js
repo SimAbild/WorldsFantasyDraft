@@ -85,6 +85,11 @@ export async function fetchPickPoints(userId) {
   return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("*").eq("user_id", userId));
 }
 
+// Alle brugeres point pr. valgt spiller i faserne; bruges til at finde fasevindere
+export async function fetchPhasePoints(phaseIds) {
+  return dataOrThrow(await supabase.from("v_fantasy_pick_points").select("user_id, phase_id, points").in("phase_id", phaseIds));
+}
+
 export async function fetchSeriesPoints(phaseId, playerIds) {
   if (!playerIds.length) return [];
   return dataOrThrow(await supabase.from("v_series_points").select("series_id, player_id, series_points, games, ended_at")

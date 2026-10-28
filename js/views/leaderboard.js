@@ -1,17 +1,23 @@
-// Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, og visning af andres hold
+// Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, fasevindere og visning af andres hold
 import * as database from "../database.js";
-import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../shared/displayText.js";
+import { escapeHtml, formatDay, formatTime, errorBox, emptyBox, PHASE_NAME } from "../shared/displayText.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
+import { phaseWinners } from "../domain/phaseWinners.js";
 import { phaseTeamsHtml, picksInPhase, sumPoints } from "../shared/teamSummary.js";
 
 const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
 
 export async function render(pageElement, appData) {
-  const seriesRows = await database.fetchSeriesRows(appData.phases.map((phase) => phase.id));
+  const phaseIds = appData.phases.map((phase) => phase.id);
+  const [seriesRows, phasePoints] = await Promise.all([database.fetchSeriesRows(phaseIds), database.fetchPhasePoints(phaseIds)]);
   const timeline = finishedSeriesInOrder(groupSeriesRows(seriesRows));
   const standingsHistory = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
-  await drawPage(pageElement, appData, standingsHistory);
+  // Stillingen lige nu indeholder alle brugere, så den giver navnene til fasevinderne
+  const standingsNow = await standingsHistory.loadStandingsAt(timeline.length);
+  const usernameById = new Map(standingsNow.map((standing) => [standing.user_id, standing.username]));
+  const phaseWinnersPanel = phaseWinnersHtml(phaseWinners(appData.phases, phasePoints), usernameById, appData.user.id);
+  await drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel);
 }
 
 // Position 0 = før første kamp, position timeline.length = nu. Hver stilling hentes kun én gang.
@@ -30,15 +36,17 @@ function standingsTimeAt(timeline, position) {
   return timeline[position - 1].at;
 }
 
-async function drawPage(pageElement, appData, standingsHistory) {
+// phaseWinnersPanel følger ikke slideren; den viser altid fasevinderne lige nu
+async function drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel) {
   const { position, loadStandingsAt } = standingsHistory;
   const [standings, previousStandings] = await Promise.all([
     loadStandingsAt(position), loadStandingsAt(Math.max(0, position - 1)),
   ]);
   pageElement.innerHTML = headerHtml(standingsHistory, standings.length)
     + standingsTableHtml(standings, previousStandings, appData.user.id)
+    + phaseWinnersPanel
     + `<dialog id="user-teams" aria-labelledby="user-teams-title"></dialog>`;
-  bindPageEvents(pageElement, appData, standingsHistory);
+  bindPageEvents(pageElement, appData, standingsHistory, phaseWinnersPanel);
   drawLeaderHistory(pageElement, standingsHistory);
 }
 
@@ -92,6 +100,28 @@ function rankChangeOf(standing, previousStanding) {
   return { text: "–", label: "uændret", cssClass: "" };
 }
 
+// ---------- Fasevindere ----------
+// Kun for at følge med: hvem scorede flest point i hver fase, uanset den samlede stilling
+function phaseWinnersHtml(phaseWinnerList, usernameById, currentUserId) {
+  const tableOrEmptyHtml = phaseWinnerList.length
+    ? `<div class="table-scroll"><table><caption class="visually-hidden">Vinder af hver fase</caption>
+      <tr><th scope="col">Fase</th><th scope="col">Vinder</th><th scope="col" class="right">Point</th></tr>
+      ${phaseWinnerList.map((phaseWinner) => phaseWinnerRowHtml(phaseWinner, usernameById, currentUserId)).join("")}</table></div>`
+    : emptyBox("Vinderne vises her, når den første fase er låst.");
+  return `<div class="panel"><h3>Fasevindere</h3>${tableOrEmptyHtml}
+    <p class="muted small">Flest point i fasen. I Swiss tæller begge hold.</p></div>`;
+}
+
+function phaseWinnerRowHtml({ phase, isDone, winnerIds, points }, usernameById, currentUserId) {
+  const status = isDone ? "Vinder" : "Fører nu";
+  const winnerNames = winnerIds.map((userId) => {
+    const youLabel = userId === currentUserId ? " (dig)" : "";
+    return `${escapeHtml(usernameById.get(userId) ?? "Ukendt")}${youLabel}`;
+  }).join(" og ");
+  const winnerText = winnerIds.length ? `<span class="muted small">${status}:</span> ${winnerNames}` : `<span class="muted">Ingen point endnu</span>`;
+  return `<tr><td>${PHASE_NAME[phase.kind]}</td><td>${winnerText}</td><td class="right number">${winnerIds.length ? points.toFixed(1) : "–"}</td></tr>`;
+}
+
 // Hvem førte efter hver af de seneste serier
 async function drawLeaderHistory(pageElement, { timeline, position, loadStandingsAt }) {
   const leaderHistoryElement = pageElement.querySelector("#leader-history");
@@ -107,9 +137,14 @@ async function drawLeaderHistory(pageElement, { timeline, position, loadStanding
   }).join("");
 }
 
-function bindPageEvents(pageElement, appData, standingsHistory) {
+function bindPageEvents(pageElement, appData, standingsHistory, phaseWinnersPanel) {
   const slider = pageElement.querySelector("#standings-after");
-  if (slider) slider.onchange = () => { standingsHistory.position = Number(slider.value); drawPage(pageElement, appData, standingsHistory); };
+  if (slider) {
+    slider.onchange = () => {
+      standingsHistory.position = Number(slider.value);
+      drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel);
+    };
+  }
   pageElement.querySelectorAll(".user-link").forEach((button) => {
     button.onclick = () => openUserTeams(pageElement, appData, button.dataset.userId, button.dataset.username);
   });

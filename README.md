@@ -103,7 +103,7 @@ Hvert afsnit herunder starter med en **kort forklaring**. Vil du vide mere om va
 | **Login** | Brugernavn og password. Ingen e-mail kræves. | Vennerne skal ikke oprette sig med e-mail for at spille et spil i én måned. |
 | **Forside** | Worlds-status: kampprogram i dansk tid, stilling i den aktuelle fase, holdstats og de bedste spillere målt i fantasy-point. | Man kan følge turneringen og finde formstærke spillere uden at forlade siden. |
 | **Fantasy draft** | Faser i rækkefølge (Play-In → Swiss → Kvartfinale → Semifinale → Finale). Hold vist efter power ranking med en begrundelse for holdets prisklasse. Spillere som FIFA-kort med billede, træk-og-slip eller klik ind på roller. Forklaringen af point, priser og roller er foldet sammen og valgfri at læse. Knappen **Lock in** gemmer. | Her træffes alle valgene, så alt, man skal bruge for at vælge, står samme sted. |
-| **Leaderboard** | Stilling for alle brugere, ændring siden sidste kamp, og en tidslinje der viser, hvem der førte efter hver afsluttet serie. Tryk på en bruger for at se vedkommendes hold og holdnavne (når fasen er låst). | Konkurrencen mellem vennerne er spillets kerne. Tidslinjen giver historie og ikke kun en slutstilling. |
+| **Leaderboard** | Stilling for alle brugere, ændring siden sidste kamp, og en tidslinje der viser, hvem der førte efter hver afsluttet serie, og fasevindere: hvem der scorede flest point i hver fase. Tryk på en bruger for at se vedkommendes hold og holdnavne (når fasen er låst). | Konkurrencen mellem vennerne er spillets kerne. Tidslinjen og fasevinderne giver historie og ikke kun en slutstilling: man kan vinde en fase uden at vinde det hele. |
 | **Mine hold** | Point pr. hold og pr. spiller, med seriepoint efter hver kamp. | Man kan se, hvilke valg der gav point, og lære til næste fase. |
 
 </details>
@@ -181,6 +181,7 @@ js/
     phase.js                    Fasernes tilstand og aktuel fase
     series.js                   Serier, stilling, tidslinje og kampprogram
     draftRules.js               Draft-reglerne på klientsiden
+    phaseWinners.js             Hvem der scorede flest point i hver fase
   shared/                       Præsentation, som flere sider bruger
     displayText.js              Escaping, datoer, visningsnavne, prisklasser, fejl- og tom-bokse
     playerCard.js               Spillerkort og portræt
@@ -540,7 +541,7 @@ Koden følger samme principper som [ProgExam](https://github.com/SimAbild/ProgEx
 | **Fulde navne** | Ingen forkortelser som `ph` eller `c`; tal har navne (`RUN_TIME_BUDGET_MS`). |
 | **DRY** | Serie-logik, fase-regler og prisklasser findes ét sted hver. `submit_draft` bygger på `v_player_card`. |
 | **GRASP** | `database.js` er en Pure Fabrication med lav kobling; `domain/` er Information Expert; `navigation.js` er Controller. |
-| **Tests** | 25 unit tests med Nodes indbyggede testværktøj (`npm test`). |
+| **Tests** | 30 unit tests med Nodes indbyggede testværktøj (`npm test`). |
 | **Dokumenterede ændringer** | [IMPROVEMENTS.md](IMPROVEMENTS.md) med før, efter og hvorfor. |
 
 </details>

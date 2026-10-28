@@ -1,6 +1,6 @@
 // Ansvar: Starter appen – tjekker login, henter turnering og faser, og skifter mellem fanerne
 import * as database from "./database.js";
-import { errorBox } from "./ui.js";
+import { errorBox } from "./shared/displayText.js";
 import * as loginView from "./views/login.js";
 import * as homeView from "./views/home.js";
 import * as draftView from "./views/draft.js";

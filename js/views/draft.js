@@ -1,6 +1,7 @@
 // Ansvar: Draft-siden – viser faser, hold og spillerkort, og sender brugerens valg til databasen
 import * as database from "../database.js";
-import { escapeHtml, playerCard, formatDayTime, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME, priceTierOf, errorBox, emptyBox } from "../ui.js";
+import { escapeHtml, formatDayTime, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME, priceTierOf, errorBox, emptyBox } from "../shared/displayText.js";
+import { playerCard } from "../shared/playerCard.js";
 import { ROLES } from "../domain/roles.js";
 import { phaseState, defaultDraftPhase, isTwoTeamPhase, teamLetter, PHASE_STATE } from "../domain/phase.js";
 import { teamsFromSaved, usedPlayerIds, teamCost, placePlayer, slotForCard, removePlayer, draftProblems, toSubmitPayload } from "../domain/draftRules.js";

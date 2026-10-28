@@ -1,6 +1,7 @@
 // Ansvar: Forsiden – Worlds-status med kampprogram, stilling, holdstats og bedste spillere
 import * as database from "../database.js";
-import { escapeHtml, formatDay, formatTime, PHASE_NAME, ROLE_NAME, emptyBox, avatar } from "../ui.js";
+import { escapeHtml, formatDay, formatTime, PHASE_NAME, ROLE_NAME, emptyBox } from "../shared/displayText.js";
+import { avatar } from "../shared/playerCard.js";
 import { currentPhase } from "../domain/phase.js";
 import { groupSeriesRows, phaseRecords, recentAndUpcomingSeries, isSeriesWinner } from "../domain/series.js";
 

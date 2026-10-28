@@ -1,5 +1,6 @@
 // Ansvar: Viser et brugerhold med spillere og point. Bruges af Mine hold og af leaderboardets visning af andres hold.
-import { escapeHtml, avatar, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME } from "../ui.js";
+import { escapeHtml, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME } from "../shared/displayText.js";
+import { avatar } from "../shared/playerCard.js";
 import { ROLES } from "../domain/roles.js";
 import { phaseState, teamLetter, PHASE_STATE } from "../domain/phase.js";
 

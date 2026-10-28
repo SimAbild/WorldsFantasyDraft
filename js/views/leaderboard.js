@@ -1,6 +1,6 @@
 // Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, og visning af andres hold
 import * as database from "../database.js";
-import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../ui.js";
+import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../shared/displayText.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
 import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
 

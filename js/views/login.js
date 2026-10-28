@@ -1,6 +1,6 @@
 // Ansvar: Login-siden – login og oprettelse med brugernavn og password
 import * as database from "../database.js";
-import { errorBox } from "../ui.js";
+import { errorBox } from "../shared/displayText.js";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 const MIN_PASSWORD_LENGTH = 6;

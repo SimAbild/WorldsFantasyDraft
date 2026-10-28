@@ -1,7 +1,7 @@
 // Ansvar: Mine hold-siden – point pr. hold og pr. spiller, med seriepoint efter hver kamp
 import * as database from "../database.js";
 import { emptyBox } from "../shared/displayText.js";
-import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
+import { phaseTeamsHtml, sumPoints } from "../shared/teamSummary.js";
 
 export async function render(root, context) {
   const { phases, user } = context;

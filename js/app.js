@@ -5,7 +5,7 @@ import * as loginView from "./views/login.js";
 import * as homeView from "./views/home.js";
 import * as draftView from "./views/draft.js";
 import * as leaderboardView from "./views/leaderboard.js";
-import * as myTeamsView from "./views/mine.js";
+import * as myTeamsView from "./views/myTeams.js";
 
 const VIEWS = { home: homeView, draft: draftView, leaderboard: leaderboardView, mine: myTeamsView };
 const DEFAULT_VIEW = "home";

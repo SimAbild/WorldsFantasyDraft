@@ -2,7 +2,7 @@
 import * as database from "../database.js";
 import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../shared/displayText.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
-import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
+import { phaseTeamsHtml, sumPoints } from "../shared/teamSummary.js";
 
 const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";

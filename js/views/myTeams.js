@@ -1,27 +1,27 @@
 // Ansvar: Mine hold-siden – point pr. hold og pr. spiller, med seriepoint efter hver kamp
 import * as database from "../database.js";
 import { emptyBox } from "../shared/displayText.js";
-import { phaseTeamsHtml, sumPoints } from "../shared/teamSummary.js";
+import { phaseTeamsHtml, picksInPhase, sumPoints } from "../shared/teamSummary.js";
 
-export async function render(root, context) {
-  const { phases, user } = context;
+export async function render(pageElement, appData) {
+  const { phases, user } = appData;
   const picks = await database.fetchPickPoints(user.id);
   if (!picks.length) {
-    root.innerHTML = `<h2>Mine hold</h2>${emptyBox("Du har ingen hold endnu. Byg dem under Fantasy draft.")}`;
+    pageElement.innerHTML = `<h2>Mine hold</h2>${emptyBox("Du har ingen hold endnu. Byg dem under Fantasy draft.")}`;
     return;
   }
-  const phasesWithTeams = phases.filter((phase) => picks.some((pick) => pick.phase_id === phase.id));
+  const phasesWithTeams = phases.filter((phase) => picksInPhase(picks, phase.id).length);
   const seriesPointsByPhase = await fetchSeriesPointsByPhase(phasesWithTeams, picks);
-  root.innerHTML = totalHeaderHtml(sumPoints(picks)) + phasesWithTeams.map((phase) =>
-    phaseTeamsHtml(phase, picks.filter((pick) => pick.phase_id === phase.id), seriesPointsByPhase.get(phase.id))).join("");
+  pageElement.innerHTML = totalHeaderHtml(sumPoints(picks)) + phasesWithTeams.map((phase) =>
+    phaseTeamsHtml(phase, picksInPhase(picks, phase.id), seriesPointsByPhase.get(phase.id))).join("");
 }
 
 async function fetchSeriesPointsByPhase(phases, picks) {
-  const entries = await Promise.all(phases.map(async (phase) => {
-    const playerIds = [...new Set(picks.filter((pick) => pick.phase_id === phase.id).map((pick) => pick.player_id))];
+  const seriesPointsPerPhase = await Promise.all(phases.map(async (phase) => {
+    const playerIds = [...new Set(picksInPhase(picks, phase.id).map((pick) => pick.player_id))];
     return [phase.id, await database.fetchSeriesPoints(phase.id, playerIds)];
   }));
-  return new Map(entries);
+  return new Map(seriesPointsPerPhase);
 }
 
 function totalHeaderHtml(total) {

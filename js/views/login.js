@@ -6,7 +6,7 @@ const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 const MIN_PASSWORD_LENGTH = 6;
 
 // Oversætter Supabase' engelske fejl til dansk
-function friendlyError(message) {
+function translateLoginError(message) {
   if (/Invalid login/i.test(message)) return "Forkert brugernavn eller password. Er du ny, så tryk Opret bruger.";
   if (/already registered/i.test(message)) return "Brugernavnet er taget. Vælg et andet.";
   if (/rate limit/i.test(message)) return "For mange forsøg lige nu. Vent et par minutter, og prøv igen.";
@@ -32,28 +32,28 @@ function formHtml(isSignUp, errorMessage) {
   </form></div>`;
 }
 
-export function render(root, { onLoggedIn }) {
+export function render(pageElement, { onLoggedIn }) {
   let isSignUp = false;
 
-  const draw = (errorMessage = "") => {
-    root.innerHTML = formHtml(isSignUp, errorMessage);
-    root.querySelector("#switch-mode").onclick = () => { isSignUp = !isSignUp; draw(); };
-    root.querySelector("#login-form").onsubmit = submit;
+  const drawForm = (errorMessage = "") => {
+    pageElement.innerHTML = formHtml(isSignUp, errorMessage);
+    pageElement.querySelector("#switch-mode").onclick = () => { isSignUp = !isSignUp; drawForm(); };
+    pageElement.querySelector("#login-form").onsubmit = submit;
   };
 
   async function submit(event) {
     event.preventDefault();
-    const username = root.querySelector("#username").value.trim().toLowerCase();
-    const password = root.querySelector("#password").value;
+    const username = pageElement.querySelector("#username").value.trim().toLowerCase();
+    const password = pageElement.querySelector("#password").value;
     const validationError = validate(username, password);
-    if (validationError) return draw(validationError);
+    if (validationError) return drawForm(validationError);
     try {
       await (isSignUp ? database.signUp(username, password) : database.signIn(username, password));
       onLoggedIn();
     } catch (error) {
-      draw(friendlyError(error.message));
+      drawForm(translateLoginError(error.message));
     }
   }
 
-  draw();
+  drawForm();
 }

@@ -78,6 +78,10 @@ Hvert afsnit herunder starter med en **kort forklaring**. Vil du vide mere om va
 | **kill participation** (KP) | Andel af holdets kills, spilleren var med til (kills + assists). |
 | **CS/min** | Minions og monstre dræbt pr. minut. |
 | **domain** | Mappen med spillets regler som rene funktioner, adskilt fra siderne. |
+| **prohold** | Et rigtigt hold i turneringen, fx T1 eller GEN. Brugerens egne hold kaldes bare "hold". |
+| **pick** | Én spiller, som brugeren har valgt til en rolle på et af sine hold. |
+| **appData** | Det, appen henter ved login og giver til alle sider: bruger, profil, turnering og faser. |
+| **pageElement** | HTML-elementet `<main id="view">`, som den åbne side tegnes ind i. |
 | **dialog** | Et vindue oven på siden. Bruges til at vise en anden brugers hold. Lukkes med Luk eller Escape. |
 | **WCAG** | Den internationale standard for tilgængelighed på nettet. Vi sigter efter niveau AA. |
 | **kontrast** | Forholdet mellem tekstens og baggrundens lysstyrke. WCAG kræver mindst 4,5:1 for almindelig tekst. |
@@ -159,7 +163,7 @@ flowchart LR
 
 ## Projektstruktur
 
-**Kort forklaret:** Frontenden ligger i `js/` med én fil pr. side og spillets regler i `js/domain/`. Databasen ligger i `supabase/`, og analysen af pointsystemet ligger i `analyse/`.
+**Kort forklaret:** Frontenden ligger i `js/`. Filnavnene siger, hvad filen gør: `startApp.js` starter appen, `navigation.js` skifter mellem fanerne, og `database.js` henter og gemmer data. Hver fane har sin egen fil i `js/views/`, og spillets regler ligger i `js/domain/`. Databasen ligger i `supabase/`, og analysen af pointsystemet ligger i `analyse/`.
 
 <details>
 <summary><b>Uddybende forklaring</b></summary>
@@ -168,18 +172,26 @@ flowchart LR
 index.html                      Appens skal: topnavigation og visningsområde
 css/app.css                     Al styling (designtokens øverst)
 js/
+  startApp.js                   Starter appen: login-tjek, henter appData, log ud
+  navigation.js                 Skift mellem fanerne og advarsel om ugemte ændringer
+  database.js                   Al kommunikation med databasen samlet ét sted
   config.js                     Supabase-URL, offentlig nøgle, tidszone
-  api.js                        Al kommunikation med Supabase samlet ét sted
-  ui.js                         Præsentation: escaping, datoer, visningsnavne, spillerkort
-  app.js                        Opstart, login-tjek og skift mellem faner
   domain/                       Spillets regler som rene funktioner (testes uden browser)
     roles.js                    De fem roller
     phase.js                    Fasernes tilstand og aktuel fase
     series.js                   Serier, stilling, tidslinje og kampprogram
     draftRules.js               Draft-reglerne på klientsiden
-  views/                        Én fil pr. side
-    login.js · home.js · draft.js · leaderboard.js · mine.js
+  shared/                       Præsentation, som flere sider bruger
+    displayText.js              Escaping, datoer, visningsnavne, prisklasser, fejl- og tom-bokse
+    playerCard.js               Spillerkort og portræt
     teamSummary.js              Et brugerhold med point – deles af Mine hold og leaderboardet
+  views/                        Én fil (eller mappe) pr. fane
+    login.js · home.js · leaderboard.js · myTeams.js
+    draft/
+      draftPage.js              Henter data, husker sidens tilstand og tegner siden
+      draftPageSections.js      HTML til sidens afsnit: faser, prohold, mine hold, Lock in
+      howPointsWork.js          Teksten "Sådan får du point"
+      pickPlayers.js            Vælg, træk, fjern og gem spillere
 tests/                          Unit tests af domain/ (npm test)
 supabase/
   functions/ingest/index.ts     Henter kampe og stats fra lolesports
@@ -193,10 +205,11 @@ IMPROVEMENTS.md                 Refaktoreringer med før, efter og hvorfor
 
 | Valg | Hvorfor |
 |---|---|
-| **Én fil pr. side i `views/`** | Hver fil har ét ansvar, så man ved præcis, hvor en side skal rettes. |
+| **Filnavne efter hvad de gør, ikke efter teknisk mønster** | `navigation.js` frem for `router.js` og `database.js` frem for `api.js`. Man kan finde koden uden at kende fagudtrykkene. |
+| **Én fil pr. side i `views/`, en mappe når siden er stor** | Hver fil har ét ansvar, så man ved præcis, hvor en side skal rettes. Draft-siden er delt i fire filer efter opgave. |
 | **Regler i `domain/`, adskilt fra siderne** | Reglerne er rene funktioner uden DOM og Supabase, så de kan unit-testes uden browser. |
-| **`api.js` er det eneste modul, der kender Supabase** | Siderne kalder funktioner og får almindelige objekter tilbage. Skifter databasen, skal kun én fil ændres. |
-| **`teamSummary.js` deles af to sider** | Mine hold og leaderboardets dialog viser det samme, så koden står ét sted (DRY). |
+| **`database.js` er det eneste modul, der kender Supabase** | Siderne kalder funktioner og får almindelige objekter tilbage. Skifter databasen, skal kun én fil ændres. |
+| **Delte stykker ligger i `shared/`** | Mine hold og leaderboardets dialog viser det samme hold, så koden står ét sted (DRY). |
 | **Migrationer kopieres ind i repoet** | Skemaet kan læses og gennemgås sammen med koden, selvom Supabase er den autoritative udgave. |
 
 </details>
@@ -454,7 +467,7 @@ Siden er gennemgået efter Nielsens 10 usability-heuristikker og WCAG 2.1 AA. Fu
 
 ## Tekniske valg
 
-**Kort forklaret:** Databasen er i 3. normalform, og alle point regnes i views. Draften gemmes kun via én databasefunktion, der tjekker alle regler, og RLS bestemmer, hvem der må se hvad. Frontenden er vanilla JS, hvor kun `api.js` kender Supabase.
+**Kort forklaret:** Databasen er i 3. normalform, og alle point regnes i views. Draften gemmes kun via én databasefunktion, der tjekker alle regler, og RLS bestemmer, hvem der må se hvad. Frontenden er vanilla JS, hvor kun `database.js` kender Supabase.
 
 <details>
 <summary><b>Uddybende forklaring</b></summary>
@@ -511,8 +524,8 @@ Hele forløbet fra lolesports til point står i [Sådan trackes pointene](#såda
 | Valg | Begrundelse |
 |---|---|
 | **Vanilla JS uden build-step** | Kan lægges direkte på GitHub Pages og er let at læse. |
-| **`api.js` er det eneste modul, der kender Supabase** | Lav kobling: visningerne kalder funktioner og får almindelige objekter tilbage. |
-| **Én fil pr. visning** | Høj samhørighed: hver fil har ét ansvar. |
+| **`database.js` er det eneste modul, der kender Supabase** | Lav kobling: visningerne kalder funktioner og får almindelige objekter tilbage. |
+| **Én fil pr. opgave** | Høj samhørighed: hver fil har ét ansvar, og navnet siger hvilket. |
 | **Al tekst fra databasen escapes** | Beskytter mod HTML-injektion via brugernavne og holdnavne. |
 | **Regler i `domain/`, adskilt fra visningerne** | GRASP Information Expert og høj samhørighed: reglerne kan unit-testes uden browser. |
 
@@ -526,8 +539,8 @@ Koden følger samme principper som [ProgExam](https://github.com/SimAbild/ProgEx
 | **Korte metoder, der læses som trin** | Fx `submit_draft`: `assert_draft_open` → `assert_draft_valid` → `save_draft`. |
 | **Fulde navne** | Ingen forkortelser som `ph` eller `c`; tal har navne (`RUN_TIME_BUDGET_MS`). |
 | **DRY** | Serie-logik, fase-regler og prisklasser findes ét sted hver. `submit_draft` bygger på `v_player_card`. |
-| **GRASP** | `api.js` er en Pure Fabrication med lav kobling; `domain/` er Information Expert; `app.js` er Controller. |
-| **Tests** | 21 unit tests med Nodes indbyggede testværktøj (`npm test`). |
+| **GRASP** | `database.js` er en Pure Fabrication med lav kobling; `domain/` er Information Expert; `navigation.js` er Controller. |
+| **Tests** | 25 unit tests med Nodes indbyggede testværktøj (`npm test`). |
 | **Dokumenterede ændringer** | [IMPROVEMENTS.md](IMPROVEMENTS.md) med før, efter og hvorfor. |
 
 </details>

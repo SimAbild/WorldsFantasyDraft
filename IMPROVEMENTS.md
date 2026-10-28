@@ -398,3 +398,33 @@ return `<details class="rules-toggle" ${isRulesOpen ? "open" : ""}><summary>Såd
 ```
 
 Hele UX-gennemgangen står i [`docs/ux-gennemgang.md`](docs/ux-gennemgang.md).
+
+---
+
+## 16. Filnavne og variabelnavne, der siger, hvad koden gør
+
+**Filer:** alle filer i `js/` undtagen `config.js` og `domain/`, samt `index.html`
+
+**Hvad blev ændret:**
+- `app.js` er delt i `startApp.js` (login og opstart) og `navigation.js` (skift mellem faner).
+- `api.js` hedder nu `database.js`.
+- `ui.js` er delt i `shared/displayText.js` (tekst, datoer, visningsnavne) og `shared/playerCard.js` (spillerkort og portræt).
+- `views/teamSummary.js` er flyttet til `shared/`, fordi den ikke er en side. `views/mine.js` hedder nu `views/myTeams.js`.
+- `views/draft.js` (304 linjer) er delt i `views/draft/` efter opgave: `draftPage.js`, `draftPageSections.js`, `howPointsWork.js` og `pickPlayers.js`. `pickPlayers.js` ændrer kun sidens tilstand gennem funktioner fra `draftPage.js`, så de to filer ikke importerer hinanden.
+- Vage navne er erstattet: `root` → `pageElement`, `context` → `appData`, `state` → `draftPage` / `standingsHistory`, `chips` → `proTeamButtons`, `redraw` → `redrawPage`.
+- Indlejrede `? :` er erstattet af små funktioner med `if`, fx `rankChangeOf()`, `seriesStatusText()` og `swissRecordClass()`.
+
+**Hvorfor:**
+Clean code: et navn skal vise hensigten. Navnene beskriver, hvad koden gør for brugeren, ikke hvilket teknisk mønster den bruger (`navigation.js` frem for `router.js`). Så kan man finde en fane eller fanenavigationen ud fra filnavnet alene, også efter en måned væk fra koden.
+
+**Før:**
+```js
+const VIEWS = { home: homeView, draft: draftView, leaderboard: leaderboardView, mine: myTeamsView };
+async function showView(name) { … await VIEWS[viewName].render(viewRoot, context); }
+```
+
+**Efter:**
+```js
+const PAGE_BY_TAB = { home: homePage, draft: draftPage, leaderboard: leaderboardPage, mine: myTeamsPage };
+async function showPage(requestedTab) { … await PAGE_BY_TAB[tabName].render(pageElement, appData); }
+```

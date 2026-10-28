@@ -69,13 +69,19 @@ function standingsTableHtml(standings, previousStandings, currentUserId) {
 
 function standingRowHtml(standing, previousStanding, currentUserId) {
   const rankChange = rankChangeOf(standing, previousStanding);
-  const pointsGained = previousStanding ? (standing.points - previousStanding.points).toFixed(1) : "0.0";
+  const pointsChange = previousStanding ? standing.points - previousStanding.points : 0;
   const isLeader = standing.rank === 1 && standing.points > 0;
   const youLabel = standing.user_id === currentUserId ? ' <span class="muted small">(dig)</span>' : "";
   return `<tr class="${isLeader ? "leader" : ""}"><td class="rank-number">${standing.rank}</td>
     <td><button class="user-link" data-user-id="${standing.user_id}" data-username="${escapeHtml(standing.username)}">${escapeHtml(standing.username)}</button>${youLabel}</td>
-    <td class="right number">${standing.points}</td><td class="right number">+${pointsGained}</td>
+    <td class="right number">${standing.points}</td><td class="right number">${signedPointsText(pointsChange)}</td>
     <td class="right"><span class="rank-change ${rankChange.cssClass}" aria-label="${rankChange.label}">${rankChange.text}</span></td></tr>`;
+}
+
+// Point kan både stige og falde mellem to serier, fx "+5.2" eller "−1.4"
+function signedPointsText(pointsChange) {
+  const rounded = Number(pointsChange.toFixed(1));
+  return rounded < 0 ? `−${Math.abs(rounded).toFixed(1)}` : `+${rounded.toFixed(1)}`;
 }
 
 // Pladser rykket siden forrige serie: som pil-tekst, som tekst til skærmlæsere og som CSS-klasse

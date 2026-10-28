@@ -1,5 +1,5 @@
 // Ansvar: Leaderboard-siden – stilling for alle brugere, tidslinje over hvem der førte, og visning af andres hold
-import * as api from "../api.js";
+import * as database from "../database.js";
 import { escapeHtml, formatDay, formatTime, errorBox, emptyBox } from "../ui.js";
 import { groupSeriesRows, finishedSeriesInOrder } from "../domain/series.js";
 import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
@@ -8,7 +8,7 @@ const LEADER_HISTORY_LENGTH = 20;   // antal serier i "hvem førte"-rækken
 const BEFORE_FIRST_GAME = "1970-01-01T00:00:00Z";
 
 export async function render(root, context) {
-  const seriesRows = await api.fetchSeriesRows(context.phases.map((phase) => phase.id));
+  const seriesRows = await database.fetchSeriesRows(context.phases.map((phase) => phase.id));
   const timeline = finishedSeriesInOrder(groupSeriesRows(seriesRows));
   const state = { timeline, position: timeline.length, loadStandingsAt: createStandingsLoader(timeline) };
   await draw(root, context, state);
@@ -20,7 +20,7 @@ function createStandingsLoader(timeline) {
   const timeAt = (position) => position >= timeline.length ? undefined
     : position === 0 ? BEFORE_FIRST_GAME : timeline[position - 1].at;
   return (position) => {
-    if (!cache.has(position)) cache.set(position, api.fetchStandings(timeAt(position)));
+    if (!cache.has(position)) cache.set(position, database.fetchStandings(timeAt(position)));
     return cache.get(position);
   };
 }
@@ -98,7 +98,7 @@ async function openUserTeams(root, context, userId, username) {
   dialog.innerHTML = userTeamsHtml(username, `<p class="muted">Henter…</p>`);
   dialog.showModal();
   try {
-    const picks = await api.fetchPickPoints(userId);
+    const picks = await database.fetchPickPoints(userId);
     const phasesWithTeams = context.phases.filter((phase) => picks.some((pick) => pick.phase_id === phase.id));
     const body = phasesWithTeams.length
       ? `<p class="muted">I alt <b class="number">${sumPoints(picks).toFixed(1)}</b> point</p>`

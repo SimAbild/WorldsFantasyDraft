@@ -1,5 +1,5 @@
 // Ansvar: Forsiden – Worlds-status med kampprogram, stilling, holdstats og bedste spillere
-import * as api from "../api.js";
+import * as database from "../database.js";
 import { escapeHtml, formatDay, formatTime, PHASE_NAME, ROLE_NAME, emptyBox, avatar } from "../ui.js";
 import { currentPhase } from "../domain/phase.js";
 import { groupSeriesRows, phaseRecords, recentAndUpcomingSeries, isSeriesWinner } from "../domain/series.js";
@@ -7,9 +7,9 @@ import { groupSeriesRows, phaseRecords, recentAndUpcomingSeries, isSeriesWinner 
 export async function render(root, context) {
   const { tournament, phases } = context;
   const [seriesRows, teamStats, topPlayers] = await Promise.all([
-    api.fetchSeriesRows(phases.map((phase) => phase.id)),
-    api.fetchTeamStats(tournament.id),
-    api.fetchTopPlayers(tournament.id),
+    database.fetchSeriesRows(phases.map((phase) => phase.id)),
+    database.fetchTeamStats(tournament.id),
+    database.fetchTopPlayers(tournament.id),
   ]);
   const allSeries = groupSeriesRows(seriesRows);
   const phase = currentPhase(phases);

@@ -1,5 +1,5 @@
 // Ansvar: Draft-siden – viser faser, hold og spillerkort, og sender brugerens valg til databasen
-import * as api from "../api.js";
+import * as database from "../database.js";
 import { escapeHtml, playerCard, formatDayTime, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME, priceTierOf, errorBox, emptyBox } from "../ui.js";
 import { ROLES } from "../domain/roles.js";
 import { phaseState, defaultDraftPhase, isTwoTeamPhase, teamLetter, PHASE_STATE } from "../domain/phase.js";
@@ -15,7 +15,7 @@ export const hasUnsavedChanges = () => Boolean(currentState?.hasUnsavedChanges);
 export async function render(root, context) {
   const phase = selectPhase(context.phases);
   const [cards, savedTeams] = await Promise.all([
-    api.fetchPlayerCards(phase.id), api.fetchMyTeams(phase.id, context.user.id),
+    database.fetchPlayerCards(phase.id), database.fetchMyTeams(phase.id, context.user.id),
   ]);
   const state = createState(phase, cards, savedTeams);
   currentState = state;
@@ -293,7 +293,7 @@ function bindLockIn(root, state, redraw) {
     button.disabled = true;
     button.textContent = "Gemmer…";
     try {
-      await api.submitDraft(state.phase.id, toSubmitPayload(state.teams));
+      await database.submitDraft(state.phase.id, toSubmitPayload(state.teams));
       state.hasUnsavedChanges = false;
       state.message = `<span class="success">Gemt. Du kan ændre indtil ${formatDayTime(state.phase.locks_at)}.</span>`;
     } catch (error) {

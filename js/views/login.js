@@ -1,5 +1,5 @@
 // Ansvar: Login-siden – login og oprettelse med brugernavn og password
-import * as api from "../api.js";
+import * as database from "../database.js";
 import { errorBox } from "../ui.js";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
@@ -48,7 +48,7 @@ export function render(root, { onLoggedIn }) {
     const validationError = validate(username, password);
     if (validationError) return draw(validationError);
     try {
-      await (isSignUp ? api.signUp(username, password) : api.signIn(username, password));
+      await (isSignUp ? database.signUp(username, password) : database.signIn(username, password));
       onLoggedIn();
     } catch (error) {
       draw(friendlyError(error.message));

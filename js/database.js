@@ -1,4 +1,4 @@
-// Ansvar: Al kommunikation med Supabase. Visningerne kender kun disse funktioner, aldrig databasen direkte.
+// Ansvar: Al kommunikation med databasen (Supabase). Siderne kender kun disse funktioner, aldrig databasen direkte.
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { SUPABASE_URL, SUPABASE_KEY, EMAIL_DOMAIN } from "./config.js";
 

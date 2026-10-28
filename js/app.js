@@ -1,5 +1,5 @@
 // Ansvar: Starter appen – tjekker login, henter turnering og faser, og skifter mellem fanerne
-import * as api from "./api.js";
+import * as database from "./database.js";
 import { errorBox } from "./ui.js";
 import * as loginView from "./views/login.js";
 import * as homeView from "./views/home.js";
@@ -40,13 +40,13 @@ function markActiveTab(viewName) {
 }
 
 async function loadContext(user) {
-  const [profile, tournament] = await Promise.all([api.fetchProfile(user.id), api.fetchCurrentTournament()]);
-  const phases = await api.fetchPhases(tournament.id);
+  const [profile, tournament] = await Promise.all([database.fetchProfile(user.id), database.fetchCurrentTournament()]);
+  const phases = await database.fetchPhases(tournament.id);
   return { user, profile, tournament, phases };
 }
 
 async function start() {
-  const user = await api.fetchCurrentUser();
+  const user = await database.fetchCurrentUser();
   if (!user) {
     topbar.hidden = true;
     loginView.render(viewRoot, { onLoggedIn: start });
@@ -65,7 +65,7 @@ async function start() {
 document.querySelectorAll("nav [data-view]").forEach((tab) => { tab.onclick = () => showView(tab.dataset.view); });
 document.getElementById("logout").onclick = async () => {
   if (!mayLeaveCurrentView()) return;
-  await api.signOut();
+  await database.signOut();
   currentViewName = null;
   start();
 };

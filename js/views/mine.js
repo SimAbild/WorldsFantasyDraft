@@ -1,11 +1,11 @@
 // Ansvar: Mine hold-siden – point pr. hold og pr. spiller, med seriepoint efter hver kamp
-import * as api from "../api.js";
+import * as database from "../database.js";
 import { emptyBox } from "../ui.js";
 import { phaseTeamsHtml, sumPoints } from "./teamSummary.js";
 
 export async function render(root, context) {
   const { phases, user } = context;
-  const picks = await api.fetchPickPoints(user.id);
+  const picks = await database.fetchPickPoints(user.id);
   if (!picks.length) {
     root.innerHTML = `<h2>Mine hold</h2>${emptyBox("Du har ingen hold endnu. Byg dem under Fantasy draft.")}`;
     return;
@@ -19,7 +19,7 @@ export async function render(root, context) {
 async function fetchSeriesPointsByPhase(phases, picks) {
   const entries = await Promise.all(phases.map(async (phase) => {
     const playerIds = [...new Set(picks.filter((pick) => pick.phase_id === phase.id).map((pick) => pick.player_id))];
-    return [phase.id, await api.fetchSeriesPoints(phase.id, playerIds)];
+    return [phase.id, await database.fetchSeriesPoints(phase.id, playerIds)];
   }));
   return new Map(entries);
 }

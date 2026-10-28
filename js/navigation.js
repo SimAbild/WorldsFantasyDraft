@@ -1,7 +1,7 @@
 // Ansvar: Skift mellem fanerne – hvilken side hver fane viser, markering af aktiv fane, #adresse og advarsel om ugemte ændringer
 import { errorBox } from "./shared/displayText.js";
 import * as homePage from "./views/home.js";
-import * as draftPage from "./views/draft.js";
+import * as draftPage from "./views/draft/draftPage.js";
 import * as leaderboardPage from "./views/leaderboard.js";
 import * as myTeamsPage from "./views/myTeams.js";
 

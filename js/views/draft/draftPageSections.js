@@ -110,11 +110,11 @@ function budgetHtml(phase, cost) {
 export function lockBarHtml(draftPage) {
   const problems = draftProblems(draftPage.teams, draftPage.cardsById, draftPage.phase);
   const problemsHtml = problems.length
-    ? problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")
+    ? `<b>Kan ikke låses ind endnu:</b>${problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")}`
     : `<span class="rule-ok">Alt er klar</span>`;
   const buttonText = isTwoTeamPhase(draftPage.phase) ? "Lock in teams" : "Lock in team";
   return `<div class="lock-bar"><div class="draft-rules" aria-live="polite">${problemsHtml}</div>
     <div class="row"><span role="status">${draftPage.message}</span>
     <button class="btn" id="lock-in" ${problems.length ? 'disabled aria-describedby="lock-in-why"' : ""}>${buttonText}</button>
-    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når alle roller er fyldt og reglerne er overholdt.</span>' : ""}</div></div>`;
+    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når det har et navn, fem spillere og overholder reglerne.</span>' : ""}</div></div>`;
 }

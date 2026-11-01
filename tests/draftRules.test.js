@@ -29,6 +29,32 @@ test("et hold uden navn kan ikke gemmes", () => {
   assert.equal(texts[0], "Hold B mangler et navn");
 });
 
+test("et navn med kun mellemrum tæller som manglende navn", () => {
+  const teams = teamsFromSaved([], playInPhase);
+  teams[0].name = "   ";
+  const texts = draftProblems(teams, cardsById, playInPhase).map((problem) => problem.text);
+  assert.equal(texts[0], "Dit hold mangler et navn");
+});
+
+test("én manglende spiller skrives i ental", () => {
+  const teams = teamsFromSaved([], playInPhase);
+  teams[0].name = "Baron Bandits";
+  [1, 7, 8, 4].forEach((id) => placePlayer(teams, byId(id), 1));
+  const texts = draftProblems(teams, cardsById, playInPhase).map((problem) => problem.text);
+  assert.deepEqual(texts, ["Dit hold mangler 1 spiller – vælg en spiller til hver rolle"]);
+});
+
+test("navn og antal spillere får hver sin besked", () => {
+  const teams = teamsFromSaved([], swissPhase);
+  teams[0].name = "Baron Bandits";
+  const texts = draftProblems(teams, cardsById, swissPhase).map((problem) => problem.text);
+  assert.deepEqual(texts, [
+    "Hold B mangler et navn",
+    "Hold A mangler 5 spillere – vælg en spiller til hver rolle",
+    "Hold B mangler 5 spillere – vælg en spiller til hver rolle",
+  ]);
+});
+
 test("gemte valg læses ind på rollerne", () => {
   const saved = [{ slot: 1, name: "Baron Bandits", fantasy_pick: [{ role_code: "top", player_id: 6 }] }];
   const [team] = teamsFromSaved(saved, playInPhase);
@@ -58,12 +84,12 @@ test("pris lægges sammen, og fjernede spillere tæller ikke", () => {
   assert.equal(teamCost(teams[0], cardsById), 22);
 });
 
-test("manglende roller er info, ikke et regelbrud", () => {
+test("for få spillere er en fejl, der beder om at vælge en spiller", () => {
   const teams = teamsFromSaved([], playInPhase);
   teams[0].name = "Baron Bandits";
   placePlayer(teams, byId(6), 1);
   const problems = draftProblems(teams, cardsById, playInPhase);
-  assert.deepEqual(problems, [{ isRuleBroken: false, text: "Dit hold: 4 roller mangler" }]);
+  assert.deepEqual(problems, [{ isRuleBroken: true, text: "Dit hold mangler 4 spillere – vælg en spiller til hver rolle" }]);
 });
 
 test("over budget og for mange fra samme hold er regelbrud", () => {

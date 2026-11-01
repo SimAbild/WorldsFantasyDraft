@@ -450,7 +450,7 @@ Valget af lolesports som eneste kilde i drift skyldes, at det er Riots egne tal,
 | **Fjern-knap på hver spiller** | Det skal være lige så nemt at fortryde som at vælge. |
 | **"Ikke gemt endnu" og advarsel før man forlader siden** | Brugeren må ikke tro, at holdet er gemt, før Lock in er trykket. |
 | **Andres hold i en dialog fra leaderboardet** | Man bliver på leaderboardet og kan hurtigt se flere venners hold efter hinanden. Samme visning som Mine hold. |
-| **Regler tjekkes live** | Budget, holdgrænse og manglende roller vises, mens man bygger, og knappen er låst, indtil holdet er gyldigt. |
+| **Regler tjekkes live** | Navn, manglende spillere, budget og holdgrænse vises hver for sig, mens man bygger, og knappen er låst, indtil holdet er gyldigt. Holdnavnet kan højst fylde 30 tegn. |
 | **Alle tider i dansk tid** | Worlds 2026 spilles i Nordamerika. Tiderne gemmes i UTC og vises i Europe/Copenhagen, så sommertidsskiftet den 25. oktober håndteres korrekt. |
 | **Leaderboard med tidslinje** | Viser, hvem der førte efter hver serie. Det giver historie og spænding, ikke kun en slutstilling. |
 | **Typografi** | Barlow Condensed til overskrifter (esports-præg), Barlow til tekst og JetBrains Mono til tal, så kolonnerne flugter. |
@@ -617,8 +617,8 @@ Koden følger samme principper som [ProgExam](https://github.com/SimAbild/ProgEx
 | Play-In | 15.–18. okt | 15. okt kl. 20:00 |
 | Swiss | 23.–26. og 28.–31. okt | 23. okt kl. 19:00 |
 | Kvartfinale | 3.–6. nov | 3. nov kl. 23:00 |
-| Semifinale | 7.–8. nov | 7. nov |
-| Finale | 14. nov | 14. nov |
+| Semifinale | 7.–8. nov | 7. nov kl. 23:00 |
+| Finale | 14. nov | 14. nov kl. 20:00 |
 
 Alle tider er dansk tid.
 

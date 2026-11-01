@@ -46,11 +46,11 @@ export function removePlayer(teams, slot, roleCode) {
 }
 
 // Alle brud på reglerne. Holdet kan først gemmes, når listen er tom.
-// isRuleBroken: false = noget mangler endnu, true = en regel er brudt (fx over budget).
+// isRuleBroken: true vises med rødt: spillere mangler, eller en regel er brudt (fx over budget).
 export function draftProblems(teams, cardsById, phase) {
   return [
     ...missingNameProblems(teams),
-    ...missingRoleProblems(teams),
+    ...playerCountProblems(teams),
     ...budgetProblems(teams, cardsById, phase),
     ...teamLimitProblems(teams, cardsById, phase),
   ];
@@ -62,11 +62,14 @@ function missingNameProblems(teams) {
     .map((team) => ({ isRuleBroken: false, text: `${teamLabel(teams, team)} mangler et navn` }));
 }
 
-function missingRoleProblems(teams) {
+function playerCountProblems(teams) {
   return teams
     .map((team) => ({ team, missing: ROLES.filter((role) => !team.picks[role]).length }))
     .filter(({ missing }) => missing > 0)
-    .map(({ team, missing }) => ({ isRuleBroken: false, text: `${teamLabel(teams, team)}: ${missing} roller mangler` }));
+    .map(({ team, missing }) => ({
+      isRuleBroken: true,
+      text: `${teamLabel(teams, team)} mangler ${missing} ${missing === 1 ? "spiller" : "spillere"} – vælg en spiller til hver rolle`,
+    }));
 }
 
 function budgetProblems(teams, cardsById, phase) {

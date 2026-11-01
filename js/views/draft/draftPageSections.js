@@ -30,7 +30,7 @@ export function teamPickerHtml(draftPage) {
   const openTeam = draftPage.proTeams.find((team) => team.pro_team_id === draftPage.openProTeamId);
   return `<div class="panel"><h3>Hold efter power ranking</h3>
     <div class="team-chips" role="group" aria-label="Vælg hold">${proTeamButtonsHtml(draftPage)}</div>
-    <div class="team-players"><header><div><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")} · ${priceTierText(openTeam, "Fri leg")}</h3>
+    <div class="team-players"><header><div><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")} · ${priceTierText(openTeam, "Ingen pris")}</h3>
       ${openTeam?.price_reason ? `<p class="price-reason">${escapeHtml(openTeam.price_reason)}</p>` : ""}</div>
       <span class="muted small">${draftHintText(draftPage)}</span></header>
       <div class="cards">${openTeamPlayersHtml(draftPage)}</div></div></div>`;
@@ -100,7 +100,7 @@ function slotContentHtml(card, team, role, isEditable) {
 }
 
 function budgetHtml(phase, cost) {
-  if (!phase.budget) return `<div class="budget">Fri leg · intet budget</div>`;
+  if (!phase.budget) return `<div class="budget">Intet budget</div>`;
   const percent = Math.min(100, (cost / phase.budget) * 100);
   return `<div class="budget"><span><b class="number" style="color:var(--fg)">${cost}</b> / ${phase.budget} brugt</span>
     <div class="bar ${cost > phase.budget ? "over-budget" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="${phase.budget}" aria-valuenow="${cost}" aria-label="Budget brugt"><i style="width:${percent}%"></i></div></div>`;
@@ -110,11 +110,11 @@ function budgetHtml(phase, cost) {
 export function lockBarHtml(draftPage) {
   const problems = draftProblems(draftPage.teams, draftPage.cardsById, draftPage.phase);
   const problemsHtml = problems.length
-    ? problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")
+    ? `<b>Kan ikke låses ind endnu:</b>${problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")}`
     : `<span class="rule-ok">Alt er klar</span>`;
   const buttonText = isTwoTeamPhase(draftPage.phase) ? "Lock in teams" : "Lock in team";
   return `<div class="lock-bar"><div class="draft-rules" aria-live="polite">${problemsHtml}</div>
     <div class="row"><span role="status">${draftPage.message}</span>
     <button class="btn" id="lock-in" ${problems.length ? 'disabled aria-describedby="lock-in-why"' : ""}>${buttonText}</button>
-    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når alle roller er fyldt og reglerne er overholdt.</span>' : ""}</div></div>`;
+    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når det har et navn, fem spillere og overholder reglerne.</span>' : ""}</div></div>`;
 }

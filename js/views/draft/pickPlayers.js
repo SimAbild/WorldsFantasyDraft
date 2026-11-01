@@ -3,7 +3,7 @@ import * as database from "../../database.js";
 import { escapeHtml, ROLE_NAME, errorBox } from "../../shared/displayText.js";
 import { isTwoTeamPhase } from "../../domain/phase.js";
 import { placePlayer, slotForCard, removePlayer, toSubmitPayload } from "../../domain/draftRules.js";
-import { savedMessage } from "./draftPageSections.js";
+import { savedMessage, lockBarHtml } from "./draftPageSections.js";
 
 // handlers kommer fra draftPage.js: { redrawPage, onPhaseSelected, onHowPointsWorkToggled }.
 // Denne fil må ikke importere draftPage.js, da de to filer så ville importere hinanden.
@@ -11,7 +11,7 @@ export function bindDraftEvents(pageElement, draftPage, handlers) {
   bindHowPointsWorkToggle(pageElement, handlers);
   bindPhaseTabs(pageElement, handlers);
   bindProTeamButtons(pageElement, draftPage, handlers.redrawPage);
-  bindTeamNameInputs(pageElement, draftPage);
+  bindTeamNameInputs(pageElement, draftPage, handlers.redrawPage);
   if (!draftPage.isEditable) return;
   bindPlayerCards(pageElement, draftPage, handlers.redrawPage);
   bindRoleSlots(pageElement, draftPage, handlers.redrawPage);
@@ -41,14 +41,16 @@ function bindProTeamButtons(pageElement, draftPage, redrawPage) {
   });
 }
 
-function bindTeamNameInputs(pageElement, draftPage) {
+function bindTeamNameInputs(pageElement, draftPage, redrawPage) {
   pageElement.querySelectorAll("input.team-name-input").forEach((input) => {
     input.oninput = () => {
       draftPage.teams[input.dataset.slot - 1].name = input.value;
       markChanged(draftPage);
-      // Kun beskeden opdateres, ikke hele siden, så markøren bliver i feltet
-      const status = pageElement.querySelector(".lock-bar [role=status]");
-      if (status) status.innerHTML = draftPage.message;
+      // Kun Lock in-bjælken opdateres, ikke hele siden, så markøren bliver i feltet
+      const lockBar = pageElement.querySelector(".lock-bar");
+      if (!lockBar) return;
+      lockBar.outerHTML = lockBarHtml(draftPage);
+      bindLockIn(pageElement, draftPage, redrawPage);
     };
   });
 }

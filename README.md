@@ -219,7 +219,7 @@ IMPROVEMENTS.md                 Refaktoreringer med før, efter og hvorfor
 
 ## Game design-valg
 
-**Kort forklaret:** Man drafter et nyt hold på fem spillere (én pr. rolle) i hver fase. Holdet skal holde sig inden for et budget på 100 og må højst have 2 spillere fra samme prohold. Prisen følger holdets placering i lolesports' power ranking. I Swiss har man to hold, og finalen er fri leg.
+**Kort forklaret:** Man drafter et nyt hold på fem spillere (én pr. rolle) i hver fase. I Play-In og Swiss skal holdet holde sig inden for et budget på 100, og prisen følger holdets placering i lolesports' power ranking. Alle faser undtagen finalen har en grænse for, hvor mange spillere man må tage fra samme prohold. I Swiss har man to hold, kvartfinalen og semifinalen har ingen priser, og finalen er fri leg.
 
 <details>
 <summary><b>Uddybende forklaring</b></summary>
@@ -234,6 +234,7 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Alle faser vægter lige** | Ingen fase afgør spillet alene. | Stigende vægt mod finalen. |
 | **To hold i Swiss** | Swiss er den største fase med flest hold. To hold giver flere strategiske valg og mere spil i den længste periode. | Ét hold i Swiss. |
 | **Swiss-point er summen af begge hold** | Swiss vægter derfor dobbelt, hvilket passer til, at fasen er den længste. | Snittet af de to hold. |
+| **Ingen priser i kvartfinalen og semifinalen** | Ændret 1. nov. 2026. Man vælger ét hold uden budget. I kvartfinalen må man højst tage 1 spiller fra samme prohold, så de fem spillere kommer fra fem forskellige af de otte prohold. Semifinalen har kun fire prohold, så her er grænsen 2. | Budget 100 med priserne 23/17. To hold. |
 | **Play-In tæller med** | Giver spil fra første kampdag. | Play-In som ren test uden point. |
 | **Finalen er fri leg** | Kun to hold er tilbage, så budget og holdgrænse giver ingen mening. Alle må vælge alle. | Budget i finalen. |
 | **Alle brugere kan vælge samme spiller** | Det er brugerens samlede viden, der skal afgøre spillet, ikke hvem der drafter først. | Eksklusiv snake-draft. |
@@ -244,8 +245,8 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | Valg | Begrundelse | Fravalgt |
 |---|---|---|
 | **Én spiller pr. rolle** (top, jungle, mid, ADC, support) | Holdet ligner et rigtigt hold, og alle roller skal vurderes. | Frie pladser. |
-| **Budget 100** (Play-In, Swiss, kvartfinale, semifinale) | Tvinger en blanding af favoritter og underdogs. | Intet budget. |
-| **Højst 2 fra samme prohold** (3 i semifinalen; i Swiss talt på tværs af begge hold) | Forhindrer at man bare stabler favoritholdet. Semifinalen har kun fire hold, så grænsen hæves. | Ingen grænse. |
+| **Budget 100** (Play-In, Swiss) | Tvinger en blanding af favoritter og underdogs. | Intet budget. |
+| **Højst 2 fra samme prohold** (1 i kvartfinalen; i Swiss talt på tværs af begge hold) | Forhindrer at man bare stabler favoritholdet. | Ingen grænse. |
 | **En spiller kan ikke stå på begge Swiss-hold** | De to hold skal være reelle alternativer. | Overlap tilladt. |
 | **Kun startspillere** | En reserve, der aldrig kommer i kamp, ville give 0 point og føles som en fælde. | Hele rosteren inklusive reserver. |
 | **Holdet skal have et navn** (fra Swiss) | Holdnavnet er en del af det sociale i spillet og vises på leaderboardet. Feltet starter tomt med teksten "Navngiv dit hold", og Lock in er låst, indtil holdet har et navn. | Standardnavnet "Mit hold". |
@@ -258,7 +259,6 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 |---|---|---|
 | **Pris pr. hold, ikke pr. spiller** | Enkelt at forstå og at sætte. Alle fem spillere på et hold koster det samme. | Individuelle spillerpriser. |
 | **Swiss: 4 prisklasser** – Favorit 26 · Stærk 22 · Middel 18 · Underdog 14 | Sat ud fra power ranking. Spredningen gør underdogs attraktive. | Faste priser for alle. |
-| **Knockout: 2 prisklasser** – Favorit 23 · Underdog 17 | Sat ud fra power ranking efter Swiss. Det lille spænd betyder, at valget handler om, hvem man tror spiller godt. | 26/14 (for stort spænd i små faser). |
 | **Play-In: 26 / 22 / 18 / 14** (KC #11, C9 #16, MVK #28, FUR #35 i power ranking 11. okt.) | Samme skala som Swiss. Budgettet tvinger mindst ét underdog-valg. | – |
 | **Hver prisklasse har en skrevet begrundelse** | Brugeren skal kunne se, hvorfor et hold er Stærk og et andet Underdog. Begrundelsen står ved holdet i draften og ligger i `team_price.reason`. | Kun et tal uden forklaring. |
 | **Prisklassen følger lolesports' Global Power Rankings**, når draften åbner | Én kilde, som alle kan slå op og tjekke. Ingen egen vurdering. | Region og seed (gav FUR en højere pris end MVK, selvom MVK er rangeret højere). |

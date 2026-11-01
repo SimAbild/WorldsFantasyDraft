@@ -88,6 +88,18 @@ test("finalen har hverken budget eller holdgrænse", () => {
   assert.deepEqual(draftProblems(teams, cardsById, finalPhase), []);
 });
 
+test("kvartfinalen har intet budget, men højst 1 fra samme prohold", () => {
+  const quarterfinalPhase = { teams_per_user: 1, budget: null, max_per_team: 1 };
+  const roles = ["top", "jungle", "mid", "adc", "support"];
+  const cards = roles.map((role, index) => card(101 + index, role, ["T1", "T1", "GEN", "KC", "BLG"][index], null));
+  const cardsByPlayerId = new Map(cards.map((playerCard) => [playerCard.player_id, playerCard]));
+  const teams = teamsFromSaved([], quarterfinalPhase);
+  teams[0].name = "Baron Bandits";
+  cards.forEach((playerCard) => placePlayer(teams, playerCard, 1));
+  const texts = draftProblems(teams, cardsByPlayerId, quarterfinalPhase).map((problem) => problem.text);
+  assert.deepEqual(texts, ["2 spillere fra T1 (højst 1)"]);
+});
+
 test("payload har alle fem roller i fast rækkefølge", () => {
   const teams = teamsFromSaved([], playInPhase);
   [1, 7, 8, 4, 10].forEach((id) => placePlayer(teams, byId(id), 1));

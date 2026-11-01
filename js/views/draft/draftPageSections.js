@@ -30,7 +30,7 @@ export function teamPickerHtml(draftPage) {
   const openTeam = draftPage.proTeams.find((team) => team.pro_team_id === draftPage.openProTeamId);
   return `<div class="panel"><h3>Hold efter power ranking</h3>
     <div class="team-chips" role="group" aria-label="Vælg hold">${proTeamButtonsHtml(draftPage)}</div>
-    <div class="team-players"><header><div><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")} · ${priceTierText(openTeam, "Fri leg")}</h3>
+    <div class="team-players"><header><div><h3 style="color:var(--fg)">${escapeHtml(openTeam?.team_name ?? "")} · ${priceTierText(openTeam, "Ingen pris")}</h3>
       ${openTeam?.price_reason ? `<p class="price-reason">${escapeHtml(openTeam.price_reason)}</p>` : ""}</div>
       <span class="muted small">${draftHintText(draftPage)}</span></header>
       <div class="cards">${openTeamPlayersHtml(draftPage)}</div></div></div>`;
@@ -100,7 +100,7 @@ function slotContentHtml(card, team, role, isEditable) {
 }
 
 function budgetHtml(phase, cost) {
-  if (!phase.budget) return `<div class="budget">Fri leg · intet budget</div>`;
+  if (!phase.budget) return `<div class="budget">Intet budget</div>`;
   const percent = Math.min(100, (cost / phase.budget) * 100);
   return `<div class="budget"><span><b class="number" style="color:var(--fg)">${cost}</b> / ${phase.budget} brugt</span>
     <div class="bar ${cost > phase.budget ? "over-budget" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="${phase.budget}" aria-valuenow="${cost}" aria-label="Budget brugt"><i style="width:${percent}%"></i></div></div>`;

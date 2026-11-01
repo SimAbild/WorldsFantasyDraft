@@ -14,7 +14,7 @@ export function howPointsWorkHtml(phase, isOpen) {
       <p>Flere spillede kampe giver ikke flere point. Et hold, der ryger ud tidligt, kan stadig give mange point.</p>
       <p>Din score er summen af alle dine hold: Play-In, Swiss A, Swiss B, kvartfinale, semifinale og finale.</p></div>
     <div><h3>Priser og regler</h3>
-      <p>Swiss: Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale og semifinale: <b>23</b> / <b>17</b>. Finalen er fri.</p>
+      <p>Swiss: Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale og semifinale: ingen priser. Finalen er fri.</p>
       <p>${teamRulesText(phase)}</p>
       <p>Kun startspillere kan vælges. "Lock in" gemmer; du kan ændre indtil fristen.</p></div>
     <div><h3>Hvorfor har holdene forskellige priser?</h3>
@@ -32,9 +32,11 @@ export function howPointsWorkHtml(phase, isOpen) {
   </div></details>`;
 }
 
-// Fasen uden budget (finalen) er fri leg
+// Fasen uden budget og holdgrænse (finalen) er fri leg
 function teamRulesText(phase) {
-  if (!phase.budget) return "Fri leg: intet budget og ingen grænse pr. prohold. Én spiller pr. rolle.";
+  if (!phase.budget && !phase.max_per_team) return "Fri leg: intet budget og ingen grænse pr. prohold. Én spiller pr. rolle.";
+  const budgetText = phase.budget ? `Budget <b>${phase.budget}</b> pr. hold.` : "Intet budget.";
   const acrossBothTeams = isTwoTeamPhase(phase) ? " på tværs af begge hold. En spiller kan ikke være på begge hold" : "";
-  return `Budget <b>${phase.budget}</b> pr. hold. Én spiller pr. rolle. Højst <b>${phase.max_per_team} spillere fra samme prohold</b>${acrossBothTeams}.`;
+  const playerWord = phase.max_per_team === 1 ? "spiller" : "spillere";
+  return `${budgetText} Én spiller pr. rolle. Højst <b>${phase.max_per_team} ${playerWord} fra samme prohold</b>${acrossBothTeams}.`;
 }

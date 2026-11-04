@@ -1,38 +1,38 @@
-// Ansvar: Starter appen – tjekker login, henter det alle sider skal bruge (appData) og logger ud
+// Ansvar: Starter appen – henter det alle sider skal bruge (appData), med eller uden login, og logger ud
 import * as database from "./database.js";
 import { errorBox } from "./shared/displayText.js";
-import * as loginPage from "./views/login.js";
-import { startNavigation, mayLeaveCurrentPage, resetCurrentPage } from "./navigation.js";
+import { startNavigation, openTab, mayLeaveCurrentPage, resetCurrentPage } from "./navigation.js";
 
 const pageElement = document.getElementById("view");
 const topbar = document.getElementById("topbar");
 
-// appData sendes til hver side: { user, profile, tournament, phases }
+// appData sendes til hver side: { user, profile, tournament, phases }. user og profile er null for gæster.
 async function loadAppData(user) {
-  const [profile, tournament] = await Promise.all([database.fetchProfile(user.id), database.fetchCurrentTournament()]);
+  const [profile, tournament] = await Promise.all([
+    user ? database.fetchProfile(user.id) : null,
+    database.fetchCurrentTournament(),
+  ]);
   const phases = await database.fetchPhases(tournament.id);
   return { user, profile, tournament, phases };
 }
 
 async function startApp() {
-  const user = await database.fetchCurrentUser();
-  if (!user) {
-    showLogin();
-    return;
-  }
   try {
+    const user = await database.fetchCurrentUser();
     const appData = await loadAppData(user);
-    document.getElementById("whoami").textContent = appData.profile.username;
+    showUserBar(appData.profile);
     topbar.hidden = false;
-    startNavigation(appData);
+    startNavigation(appData, startApp);
   } catch (error) {
     pageElement.innerHTML = errorBox(`Kunne ikke hente data: ${error.message}`);
   }
 }
 
-function showLogin() {
-  topbar.hidden = true;
-  loginPage.render(pageElement, { onLoggedIn: startApp });
+// Indlogget: "brugernavn · Log ud". Gæst: "Log ind".
+function showUserBar(profile) {
+  document.getElementById("whoami").textContent = profile?.username ?? "";
+  document.getElementById("logged-in").hidden = !profile;
+  document.getElementById("login").hidden = Boolean(profile);
 }
 
 async function logOut() {
@@ -43,4 +43,5 @@ async function logOut() {
 }
 
 document.getElementById("logout").onclick = logOut;
+document.getElementById("login").onclick = () => openTab("draft");
 startApp();

@@ -19,9 +19,10 @@ function validate(username, password) {
   return null;
 }
 
-function formHtml(isSignUp, errorMessage) {
+function formHtml(isSignUp, errorMessage, reason) {
   return `<div class="login"><form id="login-form" novalidate>
     <h2>${isSignUp ? "Opret bruger" : "Log ind"}</h2>
+    ${reason ? `<p class="muted">${reason}</p>` : ""}
     <label for="username">Brugernavn<input id="username" autocomplete="username" required></label>
     <label for="password">Password<input id="password" type="password" autocomplete="${isSignUp ? "new-password" : "current-password"}" required></label>
     ${isSignUp ? `<p class="muted small">3–20 tegn: små bogstaver, tal og _. Password mindst ${MIN_PASSWORD_LENGTH} tegn.</p>` : ""}
@@ -32,11 +33,12 @@ function formHtml(isSignUp, errorMessage) {
   </form></div>`;
 }
 
-export function render(pageElement, { onLoggedIn }) {
+// reason: kort tekst om, hvorfor login kræves her
+export function render(pageElement, { onLoggedIn, reason = "" }) {
   let isSignUp = false;
 
   const drawForm = (errorMessage = "") => {
-    pageElement.innerHTML = formHtml(isSignUp, errorMessage);
+    pageElement.innerHTML = formHtml(isSignUp, errorMessage, reason);
     pageElement.querySelector("#switch-mode").onclick = () => { isSignUp = !isSignUp; drawForm(); };
     pageElement.querySelector("#login-form").onsubmit = submit;
   };

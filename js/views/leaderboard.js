@@ -16,7 +16,7 @@ export async function render(pageElement, appData) {
   // Stillingen lige nu indeholder alle brugere, så den giver navnene til fasevinderne
   const standingsNow = await standingsHistory.loadStandingsAt(timeline.length);
   const usernameById = new Map(standingsNow.map((standing) => [standing.user_id, standing.username]));
-  const phaseWinnersPanel = phaseWinnersHtml(phaseWinners(appData.phases, phasePoints), usernameById, appData.user.id);
+  const phaseWinnersPanel = phaseWinnersHtml(phaseWinners(appData.phases, phasePoints), usernameById, appData.user?.id);
   await drawPage(pageElement, appData, standingsHistory, phaseWinnersPanel);
 }
 
@@ -43,7 +43,7 @@ async function drawPage(pageElement, appData, standingsHistory, phaseWinnersPane
     loadStandingsAt(position), loadStandingsAt(Math.max(0, position - 1)),
   ]);
   pageElement.innerHTML = headerHtml(standingsHistory, standings.length)
-    + standingsTableHtml(standings, previousStandings, appData.user.id)
+    + standingsTableHtml(standings, previousStandings, appData.user?.id)
     + phaseWinnersPanel
     + `<dialog id="user-teams" aria-labelledby="user-teams-title"></dialog>`;
   bindPageEvents(pageElement, appData, standingsHistory, phaseWinnersPanel);
@@ -168,7 +168,7 @@ async function openUserTeams(pageElement, appData, userId, username) {
 function userTeamsBodyHtml(appData, picks, userId, username) {
   const phasesWithTeams = appData.phases.filter((phase) => picksInPhase(picks, phase.id).length);
   if (!phasesWithTeams.length) {
-    return emptyBox(userId === appData.user.id ? "Du har ingen hold endnu." : `${username}s hold vises her, når en fase er låst.`);
+    return emptyBox(userId === appData.user?.id ? "Du har ingen hold endnu." : `${username}s hold vises her, når en fase er låst.`);
   }
   return `<p class="muted">I alt <b class="number">${sumPoints(picks).toFixed(1)}</b> point</p>`
     + phasesWithTeams.map((phase) => phaseTeamsHtml(phase, picksInPhase(picks, phase.id))).join("");

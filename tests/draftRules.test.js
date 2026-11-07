@@ -5,7 +5,7 @@ import { teamsFromSaved, teamCost, placePlayer, slotForCard, removePlayer, draft
 
 const swissPhase = { teams_per_user: 2, budget: 100, max_per_team: 2 };
 const playInPhase = { teams_per_user: 1, budget: 100, max_per_team: 2 };
-const finalPhase = { teams_per_user: 1, budget: null, max_per_team: null };
+const finalPhase = { teams_per_user: 1, budget: null, max_per_team: 3 };
 
 const card = (player_id, role_code, team_code, price) => ({ player_id, role_code, team_code, price });
 const cards = [
@@ -107,11 +107,22 @@ test("et gyldigt hold har ingen problemer", () => {
   assert.deepEqual(draftProblems(teams, cardsById, playInPhase), []);
 });
 
-test("finalen har hverken budget eller holdgrænse", () => {
+test("finalen har intet budget og tillader 3 fra samme prohold", () => {
   const teams = teamsFromSaved([], finalPhase);
   teams[0].name = "Baron Bandits";
-  [1, 2, 3, 4, 5].forEach((id) => placePlayer(teams, byId(id), 1));
+  [1, 2, 3, 4, 5].forEach((id) => placePlayer(teams, byId(id), 1)); // 3 KC + 2 C9 = 122, men intet budget
   assert.deepEqual(draftProblems(teams, cardsById, finalPhase), []);
+});
+
+test("finalen afviser 4 fra samme prohold", () => {
+  const roles = ["top", "jungle", "mid", "adc", "support"];
+  const cards = roles.map((role, index) => card(201 + index, role, ["T1", "T1", "T1", "T1", "GEN"][index], null));
+  const cardsByPlayerId = new Map(cards.map((playerCard) => [playerCard.player_id, playerCard]));
+  const teams = teamsFromSaved([], finalPhase);
+  teams[0].name = "Baron Bandits";
+  cards.forEach((playerCard) => placePlayer(teams, playerCard, 1));
+  const texts = draftProblems(teams, cardsByPlayerId, finalPhase).map((problem) => problem.text);
+  assert.deepEqual(texts, ["4 spillere fra T1 (højst 3)"]);
 });
 
 test("kvartfinalen har intet budget, men højst 1 fra samme prohold", () => {

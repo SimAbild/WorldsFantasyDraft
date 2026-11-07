@@ -14,7 +14,7 @@ export function howPointsWorkHtml(phase, isOpen) {
       <p>Flere spillede kampe giver ikke flere point. Et hold, der ryger ud tidligt, kan stadig give mange point.</p>
       <p>Din score er summen af alle dine hold: Play-In, Swiss A, Swiss B, kvartfinale, semifinale og finale.</p></div>
     <div><h3>Priser og regler</h3>
-      <p>Swiss: Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale og semifinale: ingen priser. Finalen er fri.</p>
+      <p>Swiss: Favorit <b>26</b> · Stærk <b>22</b> · Middel <b>18</b> · Underdog <b>14</b>. Kvartfinale, semifinale og finale: ingen priser.</p>
       <p>${teamRulesText(phase)}</p>
       <p>Kun startspillere kan vælges. "Lock in" gemmer; du kan ændre indtil fristen.</p></div>
     <div><h3>Hvorfor har holdene forskellige priser?</h3>
@@ -32,7 +32,7 @@ export function howPointsWorkHtml(phase, isOpen) {
   </div></details>`;
 }
 
-// Fasen uden budget og holdgrænse (finalen) er fri leg
+// En fase uden budget og holdgrænse er fri leg
 function teamRulesText(phase) {
   if (!phase.budget && !phase.max_per_team) return "Fri leg: intet budget og ingen grænse pr. prohold. Én spiller pr. rolle.";
   const budgetText = phase.budget ? `Budget <b>${phase.budget}</b> pr. hold.` : "Intet budget.";

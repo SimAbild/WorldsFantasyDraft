@@ -45,51 +45,48 @@ export function removePlayer(teams, slot, roleCode) {
   delete teams[slot - 1].picks[roleCode];
 }
 
-// Alle brud på reglerne. Holdet kan først gemmes, når listen er tom.
-// isRuleBroken: true vises med rødt: spillere mangler, eller en regel er brudt (fx over budget).
-export function draftProblems(teams, cardsById, phase) {
+// Hele regelsættet som en tjekliste i fast rækkefølge: navn, spillere, budget, holdgrænse.
+// isMet: true vises med grønt, false med rødt. Holdet kan først gemmes, når alle er opfyldt.
+export function draftRuleChecks(teams, cardsById, phase) {
   return [
-    ...missingNameProblems(teams),
-    ...playerCountProblems(teams),
-    ...budgetProblems(teams, cardsById, phase),
-    ...teamLimitProblems(teams, cardsById, phase),
+    ...teams.map((team) => nameCheck(teams, team)),
+    ...teams.map((team) => playerCountCheck(teams, team)),
+    ...(phase.budget ? teams.map((team) => budgetCheck(teams, team, cardsById, phase.budget)) : []),
+    ...(phase.max_per_team ? teamLimitChecks(teams, cardsById, phase.max_per_team) : []),
   ];
 }
 
-function missingNameProblems(teams) {
-  return teams
-    .filter((team) => !team.name.trim())
-    .map((team) => ({ isRuleBroken: false, text: `${teamLabel(teams, team)} mangler et navn` }));
+// Med to hold står "Hold A: " foran, så man kan se, hvilket hold reglen gælder
+function teamPrefix(teams, team) {
+  return teams.length === 2 ? `${teamLabel(teams, team)}: ` : "";
 }
 
-function playerCountProblems(teams) {
-  return teams
-    .map((team) => ({ team, missing: ROLES.filter((role) => !team.picks[role]).length }))
-    .filter(({ missing }) => missing > 0)
-    .map(({ team, missing }) => ({
-      isRuleBroken: true,
-      text: `${teamLabel(teams, team)} mangler ${missing} ${missing === 1 ? "spiller" : "spillere"} – vælg en spiller til hver rolle`,
-    }));
+function nameCheck(teams, team) {
+  const isMet = team.name.trim() !== "";
+  return { isMet, text: `${teamLabel(teams, team)} ${isMet ? "har et navn" : "mangler et navn"}` };
 }
 
-function budgetProblems(teams, cardsById, phase) {
-  if (!phase.budget) return [];
-  return teams
-    .map((team) => ({ team, overBy: teamCost(team, cardsById) - phase.budget }))
-    .filter(({ overBy }) => overBy > 0)
-    .map(({ team, overBy }) => ({ isRuleBroken: true, text: `${teamLabel(teams, team)} er ${overBy} over budget` }));
+function playerCountCheck(teams, team) {
+  const picked = ROLES.filter((role) => team.picks[role]).length;
+  return { isMet: picked === ROLES.length, text: `${teamPrefix(teams, team)}${picked} af ${ROLES.length} spillere` };
 }
 
-function teamLimitProblems(teams, cardsById, phase) {
-  if (!phase.max_per_team) return [];
+function budgetCheck(teams, team, cardsById, budget) {
+  const cost = teamCost(team, cardsById);
+  const text = cost > budget ? `${cost - budget} over budget` : `Budget ${cost} af ${budget}`;
+  return { isMet: cost <= budget, text: `${teamPrefix(teams, team)}${text}` };
+}
+
+// Tælles på tværs af begge hold. Ét grønt punkt, når alt er i orden, ellers ét rødt pr. prohold over grænsen.
+function teamLimitChecks(teams, cardsById, maxPerTeam) {
   const countByTeam = new Map();
   for (const playerId of usedPlayerIds(teams)) {
     const card = cardsById.get(playerId);
     if (card) countByTeam.set(card.team_code, (countByTeam.get(card.team_code) ?? 0) + 1);
   }
-  return [...countByTeam]
-    .filter(([, count]) => count > phase.max_per_team)
-    .map(([teamCode, count]) => ({ isRuleBroken: true, text: `${count} spillere fra ${teamCode} (højst ${phase.max_per_team})` }));
+  const overLimit = [...countByTeam].filter(([, count]) => count > maxPerTeam);
+  if (!overLimit.length) return [{ isMet: true, text: `Højst ${maxPerTeam} fra samme prohold` }];
+  return overLimit.map(([teamCode, count]) => ({ isMet: false, text: `${count} fra ${teamCode} (højst ${maxPerTeam})` }));
 }
 
 // Formatet databasens submit_draft forventer

@@ -134,7 +134,7 @@ details.rules-toggle summary{cursor:pointer;font-family:var(--display);font-size
 .role-slot .card .name{font-size:16px;min-width:0}
 .role-slot .card .price{font-size:22px}
 .role-slot .card .face span{width:40px;height:40px;font-size:16px}
-.draft-rules{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.draft-rules{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .draft-rules .rule-broken{color:var(--loss)}
 .draft-rules .rule-ok{color:var(--win)}
 .lock-bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;position:sticky;bottom:12px}

@@ -450,7 +450,7 @@ Valget af lolesports som eneste kilde i drift skyldes, at det er Riots egne tal,
 | **Fjern-knap på hver spiller** | Det skal være lige så nemt at fortryde som at vælge. |
 | **"Ikke gemt endnu" og advarsel før man forlader siden** | Brugeren må ikke tro, at holdet er gemt, før Lock in er trykket. |
 | **Andres hold i en dialog fra leaderboardet** | Man bliver på leaderboardet og kan hurtigt se flere venners hold efter hinanden. Samme visning som Mine hold. |
-| **Regler tjekkes live** | Navn, manglende spillere, budget og holdgrænse vises hver for sig, mens man bygger, og knappen er låst, indtil holdet er gyldigt. Holdnavnet kan højst fylde 30 tegn. |
+| **Regelsættet står altid i Lock in-bjælken** | Navn, spillere, budget og holdgrænse står som en tjekliste på én linje. Et punkt er rødt med ✗, indtil reglen er opfyldt, og bliver derefter grønt med ✓. Ikonet gør, at farveblinde også kan se forskel. Knappen er låst, indtil alt er grønt. Holdnavnet kan højst fylde 30 tegn. |
 | **Alle tider i dansk tid** | Worlds 2026 spilles i Nordamerika. Tiderne gemmes i UTC og vises i Europe/Copenhagen, så sommertidsskiftet den 25. oktober håndteres korrekt. |
 | **Leaderboard med tidslinje** | Viser, hvem der førte efter hver serie. Det giver historie og spænding, ikke kun en slutstilling. |
 | **Typografi** | Barlow Condensed til overskrifter (esports-præg), Barlow til tekst og JetBrains Mono til tal, så kolonnerne flugter. |

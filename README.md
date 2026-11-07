@@ -219,7 +219,7 @@ IMPROVEMENTS.md                 Refaktoreringer med før, efter og hvorfor
 
 ## Game design-valg
 
-**Kort forklaret:** Man drafter et nyt hold på fem spillere (én pr. rolle) i hver fase. I Play-In og Swiss skal holdet holde sig inden for et budget på 100, og prisen følger holdets placering i lolesports' power ranking. Alle faser undtagen finalen har en grænse for, hvor mange spillere man må tage fra samme prohold. I Swiss har man to hold, kvartfinalen og semifinalen har ingen priser, og finalen er fri leg.
+**Kort forklaret:** Man drafter et nyt hold på fem spillere (én pr. rolle) i hver fase. I Play-In og Swiss skal holdet holde sig inden for et budget på 100, og prisen følger holdets placering i lolesports' power ranking. Alle faser har en grænse for, hvor mange spillere man må tage fra samme prohold. I Swiss har man to hold, og fra kvartfinalen og frem er der ingen priser.
 
 <details>
 <summary><b>Uddybende forklaring</b></summary>
@@ -236,7 +236,7 @@ Hvert valg er listet med begrundelse og de alternativer, der blev fravalgt.
 | **Swiss-point er summen af begge hold** | Swiss vægter derfor dobbelt, hvilket passer til, at fasen er den længste. | Snittet af de to hold. |
 | **Ingen priser i kvartfinalen og semifinalen** | Ændret 1. nov. 2026. Man vælger ét hold uden budget. I kvartfinalen må man højst tage 1 spiller fra samme prohold, så de fem spillere kommer fra fem forskellige af de otte prohold. Semifinalen har kun fire prohold, så her er grænsen 2. | Budget 100 med priserne 23/17. To hold. |
 | **Play-In tæller med** | Giver spil fra første kampdag. | Play-In som ren test uden point. |
-| **Finalen er fri leg** | Kun to hold er tilbage, så budget og holdgrænse giver ingen mening. Alle må vælge alle. | Budget i finalen. |
+| **Finalen: højst 3 fra samme prohold** | Ændret 7. nov. 2026. Kun to hold er tilbage, så der er intet budget. Grænsen på 3 betyder, at man skal tage mindst 2 spillere fra hvert hold, og man kan ikke bare vælge hele favoritholdet. | Fri leg uden holdgrænse; budget i finalen. |
 | **Alle brugere kan vælge samme spiller** | Det er brugerens samlede viden, der skal afgøre spillet, ikke hvem der drafter først. | Eksklusiv snake-draft. |
 | **Ingen ligaer – alle er på samme leaderboard** | Spillet deles kun med en vennegruppe, så ligaer og invitationskoder var unødig kompleksitet. | Ligaer med invitationskode (bygget i første version og fjernet igen). |
 
@@ -450,7 +450,7 @@ Valget af lolesports som eneste kilde i drift skyldes, at det er Riots egne tal,
 | **Fjern-knap på hver spiller** | Det skal være lige så nemt at fortryde som at vælge. |
 | **"Ikke gemt endnu" og advarsel før man forlader siden** | Brugeren må ikke tro, at holdet er gemt, før Lock in er trykket. |
 | **Andres hold i en dialog fra leaderboardet** | Man bliver på leaderboardet og kan hurtigt se flere venners hold efter hinanden. Samme visning som Mine hold. |
-| **Regler tjekkes live** | Navn, manglende spillere, budget og holdgrænse vises hver for sig, mens man bygger, og knappen er låst, indtil holdet er gyldigt. Holdnavnet kan højst fylde 30 tegn. |
+| **Regelsættet står altid i Lock in-bjælken** | Navn, spillere, budget og holdgrænse står som en tjekliste på én linje. Et punkt er rødt med ✗, indtil reglen er opfyldt, og bliver derefter grønt med ✓. Ikonet gør, at farveblinde også kan se forskel. Knappen er låst, indtil alt er grønt. Holdnavnet kan højst fylde 30 tegn. |
 | **Alle tider i dansk tid** | Worlds 2026 spilles i Nordamerika. Tiderne gemmes i UTC og vises i Europe/Copenhagen, så sommertidsskiftet den 25. oktober håndteres korrekt. |
 | **Leaderboard med tidslinje** | Viser, hvem der førte efter hver serie. Det giver historie og spænding, ikke kun en slutstilling. |
 | **Typografi** | Barlow Condensed til overskrifter (esports-præg), Barlow til tekst og JetBrains Mono til tal, så kolonnerne flugter. |

@@ -3,7 +3,7 @@ import { escapeHtml, formatDayTime, ROLE_NAME, PHASE_NAME, PHASE_STATE_NAME, pri
 import { playerCard } from "../../shared/playerCard.js";
 import { ROLES } from "../../domain/roles.js";
 import { phaseState, isTwoTeamPhase, teamLetter } from "../../domain/phase.js";
-import { usedPlayerIds, teamCost, draftProblems } from "../../domain/draftRules.js";
+import { usedPlayerIds, teamCost, draftRuleChecks } from "../../domain/draftRules.js";
 
 // cssClass er "muted", når siden åbnes, og "success" lige efter Lock in
 export function savedMessage(phase, cssClass) {
@@ -107,14 +107,19 @@ function budgetHtml(phase, cost) {
 }
 
 // ---------- Lock in ----------
+// Regelsættet står altid i bjælken: rødt med ✗, til reglen er opfyldt, derefter grønt med ✓
 export function lockBarHtml(draftPage) {
-  const problems = draftProblems(draftPage.teams, draftPage.cardsById, draftPage.phase);
-  const problemsHtml = problems.length
-    ? `<b>Kan ikke låses ind endnu:</b>${problems.map((problem) => `<span class="${problem.isRuleBroken ? "rule-broken" : ""}">${escapeHtml(problem.text)}</span>`).join("")}`
-    : `<span class="rule-ok">Alt er klar</span>`;
+  const checks = draftRuleChecks(draftPage.teams, draftPage.cardsById, draftPage.phase);
+  const isReady = checks.every((check) => check.isMet);
   const buttonText = isTwoTeamPhase(draftPage.phase) ? "Lock in teams" : "Lock in team";
-  return `<div class="lock-bar"><div class="draft-rules" aria-live="polite">${problemsHtml}</div>
+  return `<div class="lock-bar"><div class="draft-rules" aria-live="polite">${checks.map(ruleCheckHtml).join("")}</div>
     <div class="row"><span role="status">${draftPage.message}</span>
-    <button class="btn" id="lock-in" ${problems.length ? 'disabled aria-describedby="lock-in-why"' : ""}>${buttonText}</button>
-    ${problems.length ? '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når det har et navn, fem spillere og overholder reglerne.</span>' : ""}</div></div>`;
+    <button class="btn" id="lock-in" ${isReady ? "" : 'disabled aria-describedby="lock-in-why"'}>${buttonText}</button>
+    ${isReady ? "" : '<span id="lock-in-why" class="visually-hidden">Holdet kan først gemmes, når alle regler er opfyldt.</span>'}</div></div>`;
+}
+
+// Ikonet gør, at farveblinde også kan se forskel. Skærmlæsere får "Opfyldt" eller "Ikke opfyldt" i stedet for ikonet.
+function ruleCheckHtml({ isMet, text }) {
+  const [cssClass, icon, spokenStatus] = isMet ? ["rule-ok", "✓", "Opfyldt"] : ["rule-broken", "✗", "Ikke opfyldt"];
+  return `<span class="${cssClass}"><span aria-hidden="true">${icon}</span> <span class="visually-hidden">${spokenStatus}: </span>${escapeHtml(text)}</span>`;
 }

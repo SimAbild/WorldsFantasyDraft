@@ -428,3 +428,30 @@ async function showView(name) { … await VIEWS[viewName].render(viewRoot, conte
 const PAGE_BY_TAB = { home: homePage, draft: draftPage, leaderboard: leaderboardPage, mine: myTeamsPage };
 async function showPage(requestedTab) { … await PAGE_BY_TAB[tabName].render(pageElement, appData); }
 ```
+
+---
+
+## 17. Siden kan bruges uden login
+
+**Filer:** `js/startApp.js`, `js/navigation.js`, `js/views/login.js`, `js/views/leaderboard.js`, `index.html`, `supabase/migrations/016_guest_read_access.sql`
+
+**Hvad blev ændret:**
+- `startApp` henter turnering og faser, uanset om man er logget ind. `appData.user` og `appData.profile` er `null` for gæster.
+- `navigation.js` har `LOGIN_REQUIRED_TABS` (`draft` og `mine`). Åbner en gæst en af dem, vises loginformularen med en kort forklaring. Efter login genstartes appen på samme fane.
+- Topbaren viser "Log ind" for gæster og "brugernavn · Log ud" for indloggede.
+- Migration 016 giver gæster læseadgang til `standings`, brugernavne og hold i låste faser.
+
+**Hvorfor:**
+Login skal kun stå i vejen, når man vil drafte. Alle andre skal kunne følge med.
+
+**Før:**
+```js
+const user = await database.fetchCurrentUser();
+if (!user) { showLogin(); return; }
+```
+
+**Efter:**
+```js
+const user = await database.fetchCurrentUser();
+const appData = await loadAppData(user);   // user er null for gæster
+```

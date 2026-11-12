@@ -100,7 +100,7 @@ Hvert afsnit herunder starter med en **kort forklaring**. Vil du vide mere om va
 
 | Side | Indhold | Hvorfor |
 |---|---|---|
-| **Login** | Brugernavn og password. Ingen e-mail kræves. | Vennerne skal ikke oprette sig med e-mail for at spille et spil i én måned. |
+| **Login** | Brugernavn og password. Ingen e-mail kræves. Kun Fantasy draft og Mine hold kræver login; forside og leaderboard kan ses af alle. | Vennerne skal ikke oprette sig med e-mail for at spille et spil i én måned, og andre skal kunne følge med uden en bruger. |
 | **Forside** | Worlds-status: kampprogram i dansk tid, stilling i den aktuelle fase, holdstats og de bedste spillere målt i fantasy-point. | Man kan følge turneringen og finde formstærke spillere uden at forlade siden. |
 | **Fantasy draft** | Faser i rækkefølge (Play-In → Swiss → Kvartfinale → Semifinale → Finale). Hold vist efter power ranking med en begrundelse for holdets prisklasse. Spillere som FIFA-kort med billede, træk-og-slip eller klik ind på roller. Forklaringen af point, priser og roller er foldet sammen og valgfri at læse. Knappen **Lock in** gemmer. | Her træffes alle valgene, så alt, man skal bruge for at vælge, står samme sted. |
 | **Leaderboard** | Stilling for alle brugere, ændring siden sidste kamp, og en tidslinje der viser, hvem der førte efter hver afsluttet serie, og fasevindere: hvem der scorede flest point i hver fase. Tryk på en bruger for at se vedkommendes hold og holdnavne (når fasen er låst). | Konkurrencen mellem vennerne er spillets kerne. Tidslinjen og fasevinderne giver historie og ikke kun en slutstilling: man kan vinde en fase uden at vinde det hele. |
@@ -438,6 +438,7 @@ Valget af lolesports som eneste kilde i drift skyldes, at det er Riots egne tal,
 
 | Valg | Begrundelse |
 |---|---|
+| **Gæster kan se forside og leaderboard** | Vennerne kan sende linket til andre, der kan følge stillingen uden at oprette en bruger. Login vises først, når man vil drafte. |
 | **Kun PC-browser** | Træk og slip og en bred holdvisning fungerer bedst på en stor skærm. |
 | **Mørk esports-stil inspireret af lolesports.com** | Genkendelig stemning for målgruppen. Der bruges ingen logoer eller grafik fra Riot. |
 | **Spillerkort i FIFA-stil** | Kortets kant viser prisklassen: guld er favorit, sølv stærk, bronze middel og grå underdog. |
@@ -502,7 +503,7 @@ Siden er gennemgået efter Nielsens 10 usability-heuristikker og WCAG 2.1 AA. Fu
 | Valg | Begrundelse |
 |---|---|
 | **Draften gemmes kun via RPC'en `submit_draft`** | Alle regler (frist, budget, roller, holdgrænse, startspillere, unikke spillere) tjekkes i én transaktion i databasen. Browseren kan ikke snyde. |
-| **RLS på alle tabeller** | Turneringsdata kan læses af alle. Kun `ingest` kan skrive. Andres hold vises først efter fristen. |
+| **RLS på alle tabeller** | Turneringsdata kan læses af alle. Kun `ingest` kan skrive. Andres hold vises først efter fristen. Gæster uden login kan læse stillingen, brugernavne og hold i låste faser (migration 016), men intet skrive. |
 | **Offentlig Supabase-nøgle i frontend** | Det er sikkert, fordi RLS styrer, hvad nøglen giver adgang til. |
 | **Brugernavn i stedet for e-mail** | Simpelt for vennerne. Supabase kræver en e-mail, så brugernavnet bliver til `brugernavn@users.worldsfantasy.app`. |
 
